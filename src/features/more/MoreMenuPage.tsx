@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/PageHeader';
+import { RequirePermission } from '@/components/RequirePermission';
 import { getAppEnv } from '@/config/env';
 import { it } from '@/i18n/it';
 
@@ -40,17 +41,22 @@ export function MoreMenuPage() {
           </div>
         </section>
 
-        {/* Group 2: Administration */}
-        <section className="space-y-1.5">
-          <h2 className="px-1 text-xs font-bold uppercase tracking-widest text-[var(--arion-accent)]">
-            {it.more.adminSectionTitle}
-          </h2>
-          <div className="divide-y divide-[var(--arion-border)] overflow-hidden rounded-md border border-[var(--arion-border)] bg-[var(--arion-surface)] shadow-2xs">
-            <MoreRow to="/admin" icon={<SlidersHorizontal className="h-5 w-5" />}>
-              {it.nav.adminControlPanel}
-            </MoreRow>
-          </div>
-        </section>
+        {/* Group 2: Administration (visible only with admin permissions) */}
+        <RequirePermission
+          anyOf={['instance:manage', 'users:manage', 'instruments:manage']}
+          fallback={null}
+        >
+          <section className="space-y-1.5">
+            <h2 className="px-1 text-xs font-bold uppercase tracking-widest text-[var(--arion-accent)]">
+              {it.more.adminSectionTitle}
+            </h2>
+            <div className="divide-y divide-[var(--arion-border)] overflow-hidden rounded-md border border-[var(--arion-border)] bg-[var(--arion-surface)] shadow-2xs">
+              <MoreRow to="/admin" icon={<SlidersHorizontal className="h-5 w-5" />}>
+                {it.nav.adminControlPanel}
+              </MoreRow>
+            </div>
+          </section>
+        </RequirePermission>
 
         {/* Group 3: Support & Information */}
         <section className="space-y-1.5">

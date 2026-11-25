@@ -1,12 +1,15 @@
 import { BookOpen, Calendar, ChevronRight, ListMusic, Radio } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/PageHeader';
+import { useAuth } from '@/features/auth/useAuth';
 import { DEMO_SONGS } from '@/features/repertoire/demoSongs';
 import { it } from '@/i18n/it';
 
 export function HomePage() {
+  const { profile } = useAuth();
   const currentHour = new Date().getHours();
-  const greeting = it.home.greeting(currentHour, it.app.defaultDisplayName);
+  const firstName = profile?.displayName.trim().split(/\s+/)[0] || it.app.defaultDisplayName;
+  const greeting = it.home.greeting(currentHour, firstName);
 
   return (
     <div className="space-y-5">

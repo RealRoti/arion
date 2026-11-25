@@ -3,6 +3,7 @@ import { BookOpen, Calendar, Home, Menu, Music2, Radio } from 'lucide-react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { ArionLogo } from '@/components/ArionLogo';
 import { getAppEnv } from '@/config/env';
+import { useAuth } from '@/features/auth/useAuth';
 import { it } from '@/i18n/it';
 
 interface AppShellProps {
@@ -29,8 +30,13 @@ function isMoreRouteActive(pathname: string): boolean {
 export function AppShell({ children }: AppShellProps) {
   const { pathname } = useLocation();
   const env = getAppEnv();
+  const { instanceSettings } = useAuth();
   const moreActive = isMoreRouteActive(pathname);
   const liveActive = pathname === '/live' || pathname.startsWith('/live/');
+
+  const groupName = instanceSettings?.groupName ?? it.app.defaultGroupName;
+  const groupSubtitle = instanceSettings?.groupSubtitle ?? it.app.subtitle;
+  const logoUrl = instanceSettings?.logoSignedUrl ?? null;
 
   const desktopNavItems = [
     { to: '/', label: it.nav.home, icon: Home, end: true },
@@ -46,10 +52,17 @@ export function AppShell({ children }: AppShellProps) {
       <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-[var(--arion-border)] lg:bg-[var(--arion-surface)]">
         <div className="border-b border-[var(--arion-border)] px-5 py-4">
           <Link to="/" className="block">
-            <ArionLogo size="md" showWordmark showSubtitle />
+            <ArionLogo
+              size="md"
+              showWordmark
+              showSubtitle
+              title={it.app.name}
+              subtitle={groupSubtitle}
+              logoUrl={logoUrl}
+            />
           </Link>
           <p className="mt-2.5 truncate text-xs font-semibold uppercase tracking-wider text-[var(--arion-accent)]">
-            {it.app.defaultGroupName}
+            {groupName}
           </p>
         </div>
 
@@ -97,11 +110,11 @@ export function AppShell({ children }: AppShellProps) {
         <header className="sticky top-0 z-20 border-b border-[var(--arion-border)] bg-[var(--arion-surface)] lg:hidden">
           <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-2.5">
             <Link to="/" className="min-w-0">
-              <ArionLogo size="sm" showWordmark />
+              <ArionLogo size="sm" showWordmark title={groupName} logoUrl={logoUrl} />
             </Link>
             <Link
               to="/impostazioni"
-              className="inline-flex max-w-[50%] items-center gap-1.5 rounded-md border border-[var(--arion-border)] bg-[var(--arion-surface-subtle)] px-2.5 py-1.5 text-xs font-semibold text-[var(--arion-text)]"
+              className="inline-flex max-w-[46%] items-center gap-1.5 rounded-md border border-[var(--arion-border)] bg-[var(--arion-surface-subtle)] px-2.5 py-1.5 text-xs font-semibold text-[var(--arion-text)]"
             >
               <Music2
                 className="h-3.5 w-3.5 shrink-0 text-[var(--arion-accent)]"

@@ -2,22 +2,74 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it as vitestIt } from 'vitest';
 import { App } from '@/App';
+import { can, canAny, getPermissionsForRole, type Role } from '@/domain/rbac/permissions';
+import type { AuthContextValue } from '@/features/auth/authContextStore';
 import { it } from '@/i18n/it';
 
-function renderApp(initialEntries: string[] = ['/']) {
+function createMockAuth(
+  role: Role,
+  status: AuthContextValue['status'] = 'authenticated',
+): AuthContextValue {
+  const permissions = getPermissionsForRole(role, status === 'authenticated');
+  return {
+    status,
+    profile:
+      status === 'authenticated'
+        ? {
+            id: 'test-user-id',
+            email: `${role}@arion.local`,
+            displayName: 'Test Demo',
+            role,
+            isActive: true,
+            activeInstrumentId: null,
+            preferredNotation: 'italian',
+            preferredTheme: 'daylight',
+            preferredTextSize: 'compact',
+            fontScale: 1,
+          }
+        : null,
+    permissions,
+    instanceSettings:
+      status === 'authenticated'
+        ? {
+            id: 1,
+            groupName: 'Coro Demo',
+            groupSubtitle: null,
+            logoPath: null,
+            logoSignedUrl: null,
+            defaultNotation: 'italian',
+            defaultTheme: 'daylight',
+            updatedAt: new Date().toISOString(),
+          }
+        : null,
+    can: (perm) => can(permissions, perm),
+    canAny: (reqs) => canAny(permissions, reqs),
+    refreshProfile: async () => undefined,
+    refreshInstanceSettings: async () => undefined,
+    signOut: async () => undefined,
+  };
+}
+
+function renderApp(initialEntries: string[] = ['/'], auth = createMockAuth('musician')) {
   return render(
     <MemoryRouter initialEntries={initialEntries}>
-      <App />
+      <App authOverride={auth} />
     </MemoryRouter>,
   );
 }
 
-describe('Arion App Navigation & Screens', () => {
+describe('Arion App Navigation & RBAC Screens', () => {
   beforeEach(() => {
     window.localStorage.clear();
   });
 
-  vitestIt('renders the 5 primary navigation items and Home workspace', () => {
+  vitestIt('shows LoginPage when unauthenticated', () => {
+    renderApp(['/'], createMockAuth('musician', 'unauthenticated'));
+
+    expect(screen.getByRole('heading', { name: it.auth.loginTitle })).toBeInTheDocument();
+  });
+
+  vitestIt('renders the 5 primary navigation items and Home workspace when authenticated', () => {
     renderApp();
 
     expect(screen.getAllByRole('link', { name: it.nav.home }).length).toBeGreaterThanOrEqual(1);
@@ -62,6 +114,18 @@ describe('Arion App Navigation & Screens', () => {
     fireEvent.click(screen.getByRole('button', { name: it.calendar.viewMonth }));
     expect(screen.getByRole('button', { name: it.calendar.todayButton })).toBeInTheDocument();
     expect(screen.getByText(it.calendar.weekdaysShort[0])).toBeInTheDocument();
+  });
+
+  vitestIt('hides Admin section in Altro for musician and shows it for admin', () => {
+    const { unmount } = renderApp(['/altro'], createMockAuth('musician'));
+    expect(screen.queryByRole('link', { name: it.nav.adminControlPanel })).not.toBeInTheDocument();
+    unmount();
+
+    renderApp(['/altro'], createMockAuth('admin'));
+    const adminLink = screen.getByRole('link', { name: it.nav.adminControlPanel });
+    expect(adminLink).toBeInTheDocument();
+    fireEvent.click(adminLink);
+    expect(screen.getByRole('heading', { name: it.admin.title })).toBeInTheDocument();
   });
 
   vitestIt(
