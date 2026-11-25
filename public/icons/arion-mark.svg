@@ -1,24 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
-  <defs>
-    <linearGradient id="arion-mark-grad" x1="16" y1="20" x2="112" y2="108" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#38BDF8" />
-      <stop offset="60%" stop-color="#2DD4BF" />
-      <stop offset="100%" stop-color="#FBBF24" />
-    </linearGradient>
-  </defs>
   <path
     d="M26 84C31 54 55 32 84 33C92 33 100 37 105 42C109 46 115 47 118 49C112 53 106 53 100 54C92 55 85 59 80 66C75 73 70 78 63 81C58 83 51 81 47 86C42 90 44 98 50 102C39 102 31 95 26 84Z"
-    fill="url(#arion-mark-grad)"
+    fill="#1B3B5A"
   />
   <path
     d="M55 41C58 29 67 24 75 24C71 30 70 36 72 40C66 39 60 40 55 41Z"
-    fill="#38BDF8"
+    fill="#2B5278"
   />
   <path
     d="M28 82C20 85 13 81 10 75C16 77 22 76 27 72C26 76 27 79 28 82Z"
-    fill="#2DD4BF"
+    fill="#2B5278"
   />
-  <circle cx="88" cy="44" r="2.6" fill="#070B14" />
-  <circle cx="102" cy="25" r="4.5" fill="#FBBF24" />
-  <path d="M105.5 25V12L115 14.5" stroke="#FBBF24" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="88" cy="44" r="2.6" fill="#FAF9F6" />
+  <circle cx="102" cy="25" r="4.5" fill="#C9A25B" />
+  <path d="M105.5 25V12L115 14.5" stroke="#C9A25B" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
 </svg>

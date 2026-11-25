@@ -1,42 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <defs>
-    <linearGradient id="arion-bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#0B1325" />
-      <stop offset="100%" stop-color="#070B14" />
-    </linearGradient>
-    <linearGradient id="arion-wave" x1="88" y1="128" x2="424" y2="396" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#38BDF8" />
-      <stop offset="55%" stop-color="#2DD4BF" />
-      <stop offset="100%" stop-color="#FBBF24" />
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="112" fill="url(#arion-bg)" />
-  <circle cx="256" cy="256" r="190" stroke="#1E293B" stroke-width="4" />
-  <!-- Acoustic wave / staff arc -->
+  <rect width="512" height="512" rx="108" fill="#1B3B5A" />
+  <rect x="20" y="20" width="472" height="472" rx="92" stroke="#C9A25B" stroke-width="5" opacity="0.45" />
   <path
-    d="M110 342C162 316 206 376 268 352C324 330 356 294 402 314"
-    stroke="#2DD4BF"
+    d="M116 340C170 316 212 372 272 348C326 326 356 294 398 314"
+    stroke="#C9A25B"
     stroke-width="14"
     stroke-linecap="round"
-    opacity="0.45"
+    opacity="0.7"
   />
-  <!-- Stylized leaping dolphin merged with musical arc -->
   <path
     d="M136 312C154 218 228 148 318 152C344 153 368 164 384 180C398 194 416 196 426 202C408 214 388 216 370 218C346 221 324 234 308 256C292 278 274 294 252 302C236 308 216 304 202 318C188 332 192 356 212 368C178 368 154 348 136 312Z"
-    fill="url(#arion-wave)"
+    fill="#FAF9F6"
   />
-  <!-- Dorsal fin -->
   <path
     d="M226 178C236 142 264 124 290 124C276 144 274 162 280 176C260 172 242 174 226 178Z"
-    fill="#38BDF8"
+    fill="#E2DDD3"
   />
-  <!-- Tail fluke -->
   <path
     d="M142 306C116 316 94 304 84 286C104 292 122 288 138 276C136 288 138 298 142 306Z"
-    fill="#2DD4BF"
+    fill="#E2DDD3"
   />
-  <!-- Musical note accent -->
-  <circle cx="332" cy="186" r="8" fill="#070B14" />
-  <circle cx="378" cy="128" r="14" fill="#FBBF24" />
-  <path d="M390 128V84L420 92" stroke="#FBBF24" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="332" cy="186" r="8" fill="#1B3B5A" />
+  <circle cx="378" cy="128" r="14" fill="#C9A25B" />
+  <path d="M390 128V84L420 92" stroke="#C9A25B" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" />
 </svg>

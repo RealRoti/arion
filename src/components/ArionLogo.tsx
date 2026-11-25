@@ -8,8 +8,8 @@ interface ArionLogoProps {
 
 const SIZE_CLASSES: Record<NonNullable<ArionLogoProps['size']>, string> = {
   sm: 'h-9 w-9',
-  md: 'h-11 w-11',
-  lg: 'h-14 w-14',
+  md: 'h-10 w-10',
+  lg: 'h-12 w-12',
 };
 
 export function ArionLogo({
@@ -18,9 +18,9 @@ export function ArionLogo({
   showSubtitle = false,
 }: ArionLogoProps) {
   return (
-    <div className="inline-flex items-center gap-3">
+    <div className="inline-flex items-center gap-2.5">
       <div
-        className={`${SIZE_CLASSES[size]} flex shrink-0 items-center justify-center rounded-xl border border-[var(--arion-border)] bg-[var(--arion-surface-elevated)] p-1.5 shadow-sm`}
+        className={`${SIZE_CLASSES[size]} flex shrink-0 items-center justify-center rounded-lg border border-[var(--arion-border)] bg-[var(--arion-primary)] p-1.5 shadow-2xs`}
       >
         <svg
           viewBox="0 0 128 128"
@@ -29,46 +29,34 @@ export function ArionLogo({
           aria-label={it.app.logoLabel}
           className="h-full w-full"
         >
-          <defs>
-            <linearGradient
-              id="arion-logo-grad"
-              x1="16"
-              y1="20"
-              x2="112"
-              y2="108"
-              gradientUnits="userSpaceOnUse"
-            >
-              <stop offset="0%" stopColor="var(--arion-accent)" />
-              <stop offset="60%" stopColor="var(--arion-accent-secondary)" />
-              <stop offset="100%" stopColor="var(--arion-chord)" />
-            </linearGradient>
-          </defs>
           <path
             d="M26 84C31 54 55 32 84 33C92 33 100 37 105 42C109 46 115 47 118 49C112 53 106 53 100 54C92 55 85 59 80 66C75 73 70 78 63 81C58 83 51 81 47 86C42 90 44 98 50 102C39 102 31 95 26 84Z"
-            fill="url(#arion-logo-grad)"
+            fill="var(--arion-primary-contrast)"
           />
           <path
             d="M55 41C58 29 67 24 75 24C71 30 70 36 72 40C66 39 60 40 55 41Z"
-            fill="var(--arion-accent)"
+            fill="var(--arion-primary-contrast)"
+            opacity="0.82"
           />
           <path
             d="M28 82C20 85 13 81 10 75C16 77 22 76 27 72C26 76 27 79 28 82Z"
-            fill="var(--arion-accent-secondary)"
+            fill="var(--arion-primary-contrast)"
+            opacity="0.82"
           />
-          <circle cx="88" cy="44" r="2.6" fill="var(--arion-bg)" />
-          <circle cx="102" cy="25" r="4.5" fill="var(--arion-chord)" />
+          <circle cx="88" cy="44" r="2.8" fill="var(--arion-primary)" />
+          <circle cx="102" cy="25" r="4.8" fill="#C9A25B" />
           <path
             d="M105.5 25V12L115 14.5"
-            stroke="var(--arion-chord)"
-            strokeWidth="3.2"
+            stroke="#C9A25B"
+            strokeWidth="3.4"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
         </svg>
       </div>
       {showWordmark ? (
-        <div className="flex flex-col">
-          <span className="text-xl font-bold tracking-tight text-[var(--arion-text)]">
+        <div className="flex flex-col leading-tight">
+          <span className="font-editorial text-lg font-bold tracking-tight text-[var(--arion-text)]">
             {it.app.name}
           </span>
           {showSubtitle ? (

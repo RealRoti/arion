@@ -11,8 +11,8 @@ Ogni milestone di questa fase è progettata come blocco autonomo, verificabile e
   - `git init`, `.gitignore` rigoroso (esclude `.env*` eccetto `.env.example`, `dist/`, `node_modules/`, artefatti locali), `.env.example`.
   - Progetto Vite + React + TypeScript (`strict: true`, `noUncheckedIndexedAccess: true`), Tailwind CSS, ESLint, Prettier, Vitest.
   - Struttura cartelle (`src/domain/`, `src/services/`, `src/features/`, `src/components/`, `src/i18n/it.ts`).
-  - `src/components/ArionLogo.tsx` (delfino stilizzato SVG) e `src/index.css` con i 3 temi (`stage_dark`, `oled_black`, `daylight`).
-  - Guscio `App.tsx` minimo funzionante con anteprima dei temi e zero stringhe hardcoded.
+  - `src/components/ArionLogo.tsx` (delfino stilizzato SVG), `src/components/AppShell.tsx` (navbar inferiore a 5 tab con `Live` centrale + sidebar desktop) e `src/index.css` con i 3 temi realistici (`daylight`, `stage_dark`, `oled_black`).
+  - Schermate base navigabili (`Home`, `Repertorio` + `Leggio`, `Live`, `Calendario`, `Altro` con sottopagine `Scalette`, `Guida`, `Profilo e preferenze`, `Amministrazione`, `Assistenza`, `Privacy`, `Informazioni sull'app`) con zero stringhe hardcoded.
 - **Verifica:** `npm run lint`, `npm run typecheck`, `npm run test`, `npm run build` verdi; `git status` privo di file sensibili.
 - **Commit suggerito:** `chore: bootstrap Arion React TypeScript PWA workspace and design tokens`
 
@@ -26,7 +26,7 @@ Ogni milestone di questa fase è progettata come blocco autonomo, verificabile e
 - **Deliverable:**
   - `supabase/config.toml` e template email italiano in `supabase/templates/` (Magic Link + Codice OTP a 6 cifre).
   - Migrazioni SQL in `supabase/migrations/`:
-    - tabelle `instance_settings`, `allowed_emails`, `profiles`, `instruments`, `user_instruments`, `user_song_preferences`, `songs`, `song_assets`, `setlists`, `setlist_items`, `live_sessions`;
+    - tabelle `instance_settings`, `allowed_emails`, `profiles`, `instruments`, `user_instruments`, `user_song_preferences`, `songs`, `song_assets`, `setlists`, `setlist_items`, `calendar_events`, `live_sessions`;
     - trigger whitelist signup su `allowed_emails`, provisioning `profiles`, blocco anti-auto-promozione e guardia anti-lockout ultimo admin;
     - policy RLS su tutte le tabelle e sui bucket Storage `song-assets` e `instance-branding`.
   - `supabase/seed.sql` con strumenti standard (voci e strumenti di base, solo dati generici), utenti demo `@arion.local` e 2 brani di esempio di pubblico dominio.
@@ -98,15 +98,17 @@ Ogni milestone di questa fase è progettata come blocco autonomo, verificabile e
 
 ---
 
-## Milestone 1.6 — Scalette (Setlist) & Studio Autonomo
+## Milestone 1.6 — Scalette (Setlist), Calendario Musicale & Studio Autonomo
 
-- **Obiettivo:** permettere al Maestro di preparare scalette ordinate con tonalità dedicate e a tutti di sfogliarle in sequenza.
+- **Obiettivo:** permettere al Maestro di preparare scalette ordinate con tonalità dedicate, pianificare prove ed esibizioni nel calendario musicale e consentire a tutti di sfogliare le scalette in sequenza.
 - **Deliverable:**
-  - `src/services/setlistsService.ts`.
+  - `src/services/setlistsService.ts` e `src/services/calendarService.ts`.
   - `src/features/setlists/`:
     - elenco, creazione, modifica, duplicazione ed eliminazione scalette;
     - aggiunta brani, riordino con drag-and-drop e pulsanti touch `Su`/`Giù`, impostazione `override_key` e note per singolo item;
     - vista esecuzione autonoma della scaletta (scorrimento sequenziale brano precedente/successivo con pedale o tap e indicazione del brano successivo).
+  - `src/features/calendar/`:
+    - creazione/modifica/eliminazione eventi (`rehearsal`, `concert`, `service`, `other`) con collegamento diretto a una scaletta, filtri per categoria, vista `Prossimi` e vista `Mese`.
 - **Verifica:** test su servizio e UI riordino/override tonalità; `npm run lint && npm run typecheck && npm run test && npm run build`.
 - **Commit suggerito:** `feat: add setlists management, reordering, key overrides and standalone reader`
 

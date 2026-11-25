@@ -1,9 +1,13 @@
 import { createContext, useContext } from 'react';
-import type { ThemeMode } from '@/domain/models/theme';
+import type { NotationSystem, TextSizeMode, ThemeMode } from '@/domain/models/theme';
 
 export interface ThemeContextValue {
   theme: ThemeMode;
   setTheme: (nextTheme: ThemeMode) => void;
+  textSize: TextSizeMode;
+  setTextSize: (nextSize: TextSizeMode) => void;
+  notation: NotationSystem;
+  setNotation: (nextNotation: NotationSystem) => void;
 }
 
 export const ThemeContext = createContext<ThemeContextValue | null>(null);

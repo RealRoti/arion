@@ -10,7 +10,7 @@ Questo documento descrive lo stack tecnologico, l'organizzazione del codice, lo 
 
 - **Framework:** React 19 + TypeScript (`strict: true`, `noUncheckedIndexedAccess: true`)
 - **Build tool:** Vite + `vite-plugin-pwa` (Workbox)
-- **Stile:** Tailwind CSS + CSS custom properties per i 3 temi (`stage_dark`, `oled_black`, `daylight`)
+- **Stile:** Tailwind CSS + CSS custom properties per i 3 temi (`daylight`, `stage_dark`, `oled_black`)
 - **Routing:** React Router
 - **Icone:** `lucide-react` + componente SVG proprietario `ArionLogo` (delfino stilizzato)
 - **Rendering PDF:** `pdfjs-dist` (rendering su `<canvas>` senza `<iframe>` nativi)
@@ -81,18 +81,21 @@ arion/
 │   │   └── offlineDb.ts            # Schema Dexie IndexedDB per cache brani, scalette e PDF
 │   ├── components/                 # Componenti UI condivisi e design system
 │   │   ├── ArionLogo.tsx
+│   │   ├── PageHeader.tsx
 │   │   ├── RequirePermission.tsx
-│   │   ├── AppShell.tsx            # Navigazione adattiva mobile/tablet/desktop + selettore strumento attivo
+│   │   ├── AppShell.tsx            # Navbar inferiore a 5 tab (mobile/tablet) + sidebar desktop + header compatto
 │   │   ├── ConnectionBadge.tsx
 │   │   └── ThemeProvider.tsx
 │   └── features/
 │       ├── auth/                   # Login email -> Magic Link + input OTP 6 cifre
+│       ├── home/                   # Home operativa: saluto, prossimo appuntamento, stato Live, accesso rapido
 │       ├── admin/                  # Pannello Admin: istanza white-label, utenti/inviti, catalogo strumenti
-│       ├── profile/                # Profilo musicale personale, strumenti associati, preferenze
-│       ├── repertoire/             # Lista brani, ricerca/tag, editor ChordPro, wizard import .docx, PDF upload
+│       ├── repertoire/             # Lista brani, ricerca/tag, leggio, editor ChordPro, wizard import .docx, PDF
 │       ├── reader/                 # Leggio unificato (ChordPro renderer, PDF.js canvas, Night Score, Wake Lock, pedale)
 │       ├── setlists/               # Gestione scalette, riordino, override tonalità, lettura in sequenza
 │       ├── live/                   # Console Maestro, Vista Musicista/Corista, Presenza, Segnali lampo, Banner prossimo
+│       ├── calendar/               # Calendario musicale: prove, esibizioni/concerti, servizi con collegamento a scalette
+│       ├── more/                   # Menu Altro, Preferenze utente, Guida, Assistenza, Privacy, Info app
 │       └── offline/                # Banner installazione iOS/Android, gestione cache "Prepara offline"
 └── tests/
     ├── unit/                       # Test aggiuntivi su hook/utility/importer
@@ -114,7 +117,7 @@ Tutte le tabelle risiedono nello schema `public` e utilizzano `uuid` come chiavi
   - `group_subtitle text`
   - `logo_path text` (percorso nello bucket privato `instance-branding`)
   - `default_notation text not null default 'italian'` (`'italian' | 'english'`)
-  - `default_theme text not null default 'stage_dark'` (`'stage_dark' | 'oled_black' | 'daylight'`)
+  - `default_theme text not null default 'daylight'` (`'daylight' | 'stage_dark' | 'oled_black'`)
   - `updated_at timestamptz not null default now()`
 - **`allowed_emails`** (whitelist inviti gestita dall'Admin):
   - `id uuid primary key`
@@ -133,7 +136,7 @@ Tutte le tabelle risiedono nello schema `public` e utilizzano `uuid` come chiavi
   - `is_active boolean not null default true`
   - `active_instrument_id uuid` (FK verso `instruments(id)` con `on delete set null`)
   - `preferred_notation text not null default 'italian'`
-  - `preferred_theme text not null default 'stage_dark'`
+  - `preferred_theme text not null default 'daylight'`
   - `font_scale numeric(3,2) not null default 1.00`
   - `created_at`, `updated_at`
 
@@ -194,7 +197,7 @@ Tutte le tabelle risiedono nello schema `public` e utilizzano `uuid` come chiavi
   - `created_by uuid references profiles(id) on delete set null`
   - `created_at timestamptz not null default now()`
 
-### 3.4 Scalette e Sessione Live
+### 3.4 Scalette, Calendario Musicale e Sessione Live
 
 - **`setlists`**:
   - `id uuid primary key`
@@ -211,6 +214,18 @@ Tutte le tabelle risiedono nello schema `public` e utilizzano `uuid` come chiavi
   - `override_key text`
   - `notes text`
   - `unique (setlist_id, position)` deferrable per riordino atomico
+- **`calendar_events`** (impegni del coro: prove, esibizioni/concerti, servizi):
+  - `id uuid primary key`
+  - `title text not null`
+  - `category text not null` (`'rehearsal' | 'concert' | 'service' | 'other'`)
+  - `event_date date not null`
+  - `start_time time not null`
+  - `end_time time`
+  - `location text`
+  - `setlist_id uuid references setlists(id) on delete set null`
+  - `notes text`
+  - `created_by uuid references profiles(id) on delete set null`
+  - `created_at`, `updated_at`
 - **`live_sessions`** (singleton per istanza in Fase 1, `id = 1`, stato persistito di fallback/riconnessione):
   - `id integer primary key default 1 check (id = 1)`
   - `is_active boolean not null default false`
@@ -290,26 +305,29 @@ flowchart LR
 
 ---
 
-## 6. Design System & Identità Visiva ("Arion — Deep Marine Stage")
+## 6. Design System & Identità Visiva ("Arion — Carta Editoriale & Palco")
 
-Per rispondere all'uso reale su leggio (ambienti poco illuminati, chiese, sale prove, sole o luce diffusa), Arion adotta una proposta grafica pulita denominata **Deep Marine Stage**, con tre temi selezionabili:
+Per offrire un'interfaccia sobria, realistica e leggibile sia nella preparazione quotidiana sia sul leggio in ambienti poco illuminati, Arion adotta una palette ispirata alla **carta musicale e all'inchiostro marittimo**, con tre temi selezionabili:
 
-| Token                           | _Stage Dark_ (Default Live)       | _OLED Black_          | _Daylight_ (Giorno/Stampa) |
-| ------------------------------- | --------------------------------- | --------------------- | -------------------------- |
-| Background primario             | `#070B14` (blu notte profondo)    | `#000000` (nero puro) | `#FAFAF9` (avorio caldo)   |
-| Surface / Card                  | `#0F172A`                         | `#0A0E17`             | `#FFFFFF`                  |
-| Bordi sottili                   | `#1E293B`                         | `#1E293B`             | `#E2E8F0`                  |
-| Testo principale (Lyrics)       | `#F1F5F9`                         | `#F8FAFC`             | `#0F172A`                  |
-| Accordi (Chords)                | `#FBBF24` (ambra calda leggibile) | `#FBBF24`             | `#0369A1` (blu oceano)     |
-| Accento primario (Delfino/Live) | `#38BDF8` (azzurro acqua)         | `#38BDF8`             | `#0284C7`                  |
-| Accento secondario (Sync/Ok)    | `#2DD4BF` (turchese marino)       | `#2DD4BF`             | `#0D9488`                  |
-| Avviso / Segnale Maestro        | `#FB7185` / `#F59E0B`             | `#FB7185` / `#F59E0B` | `#E11D48` / `#D97706`      |
+| Token                              | _Chiaro_ (`daylight`, Default)   | _Palco Notturno_ (`stage_dark`) | _Nero OLED_ (`oled_black`) |
+| ---------------------------------- | -------------------------------- | ------------------------------- | -------------------------- |
+| Background primario                | `#F8F7F4` (carta calda)          | `#111317` (ardesia scura)       | `#000000` (nero puro)      |
+| Surface / Card                     | `#FFFFFF`                        | `#181B21`                       | `#0D0F13`                  |
+| Bordi sottili                      | `#E2DDD3`                        | `#2B303B`                       | `#242933`                  |
+| Testo principale (Lyrics)          | `#1C1917`                        | `#F2F1EE`                       | `#F2F1EE`                  |
+| Accordi (Chords)                   | `#1B3B5A` (inchiostro marittimo) | `#E5B869` (ottone caldo opaco)  | `#E5B869`                  |
+| Primario / Navigazione attiva      | `#1B3B5A`                        | `#2B5278`                       | `#2B5278`                  |
+| Accento editoriale (Filetti/Badge) | `#8F6A2E` (ottone editoriale)    | `#C9A25B`                       | `#C9A25B`                  |
+| Live attivo / Avvisi               | `#9B2226` / `#92400E`            | `#E06D70` / `#E5B869`           | `#E06D70` / `#E5B869`      |
 
-### Linee guida UI & Tipografia
+### Architettura di Navigazione & Linee guida UI
 
-- **Logo Arion:** delfino stilizzato in curva fluida che richiama un'onda sonora/chiave musicale, disegnato in SVG vettoriale per scalare nitidamente da favicon `16px` a icona PWA `512px`.
-- **Tipografia leggio:** sans-serif ad alta leggibilità (es. `Inter` / system-ui) per testo e UI; peso `700` e spaziatura dedicata per gli accordi sopra sillaba in modo che non si confondano mai col cantato.
-- **Ergonomia touch:** barra di controllo leggio auto-nascondibile (tap al centro per mostrare/nascondere), pulsanti `>= 44x44px`, layout **1 colonna** su smartphone e **2 colonne opzionali** su iPad landscape.
+- **Navigazione mobile/tablet (`< lg`):** barra inferiore fissa a **5 destinazioni** con safe-area iOS: `Home`, `Repertorio`, **`Live` (pulsante centrale prominente)**, `Calendario`, `Altro`.
+- **Navigazione desktop (`>= lg`):** barra laterale sinistra fissa con le stesse 5 destinazioni e footer discreto di versione.
+- **Sezione `Altro`:** raggruppa in righe pulite `Scalette`, `Guida all'uso`, `Profilo e preferenze`, `Amministrazione` (se abilitato), `Assistenza tecnica e feedback`, `Privacy e integrità dei dati` e `Informazioni sull'app`.
+- **Logo Arion:** delfino stilizzato sobrio in inchiostro marittimo e ottone, in SVG vettoriale per favicon e icone PWA.
+- **Tipografia:** sans-serif nitido (`Inter` / system-ui) per UI e testi dei brani, serif editoriale di sistema per i titoli principali (zero richieste a CDN esterni), preferenza accessibilità `Compatto` (`100%`) / `Esteso` (`112.5%`).
+- **Ergonomia touch:** pulsanti `>= 44x44px`, bordi sottili da `1px`, filetti editoriali sobri sotto i titoli di pagina e toggle rapido `Chiaro / Palco Notturno` direttamente nel leggio.
 
 ---
 

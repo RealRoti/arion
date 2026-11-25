@@ -16,7 +16,7 @@
   - `group_subtitle`: sottotitolo opzionale (es. motto o sezione).
   - `logo_url`: logo personalizzato opzionale caricato su Storage privato (in assenza, viene mostrato il logo ufficiale delfino di Arion).
   - `default_notation`: notazione di default dell'istanza (`italian` o `english`).
-  - `default_theme`: tema di default (`stage_dark`, `oled_black`, `daylight`).
+  - `default_theme`: tema di default (`daylight`, `stage_dark`, `oled_black`).
 
 ---
 
@@ -162,15 +162,32 @@ Per agevolare l'uniformazione dell'archivio esistente, l'editor brani include un
 
 ---
 
-## 6. Scalette (Setlist)
+## 6. Scalette (Setlist), Calendario Musicale e Navigazione
+
+### 6.1 Architettura delle schermate (Navbar a 5 tab)
+
+- **Barra di navigazione inferiore (mobile/tablet) e laterale (desktop):**
+  1. **`Home`:** saluto dinamico, striscia compatta sul prossimo appuntamento in calendario, stato della sessione Live e accessi rapidi a repertorio e scalette.
+  2. **`Repertorio`:** archivio brani ricercabile, filtri per tag e accesso diretto al Leggio.
+  3. **`Live` (pulsante centrale prominente):** console di conduzione per il Maestro o vista sincronizzata per i musicisti/coristi.
+  4. **`Calendario`:** calendario musicale unificato (Prove, Esibizioni/Concerti, Servizi) con vista _Prossimi_ e griglia _Mese_, e collegamento diretto alla scaletta prevista.
+  5. **`Altro`:** menu ordinato con `Scalette`, `Guida all'uso`, `Profilo e preferenze`, `Amministrazione` (se abilitato), `Assistenza tecnica e feedback`, `Privacy e integrità dei dati` e `Informazioni sull'app`.
+
+### 6.2 Scalette (Setlist)
 
 - Il Maestro e l'Admin creano e gestiscono scalette (`setlists`) con titolo, data prevista opzionale e descrizione/note generali.
 - Ogni voce di scaletta (`setlist_items`) contiene:
   - `song_id` e `position` (ordinamento tramite drag-and-drop e pulsanti touch `Su`/`Giù` comodi su tablet);
-  - `override_key` opzionale (es. il brano è in `Sol`, ma in questa messa lo eseguiamo in `Fa`);
+  - `override_key` opzionale (es. il brano è in `Sol`, ma in questa esecuzione lo suoniamo in `Fa`);
   - `notes` opzionali specifiche dell'esecuzione (es. _"Solo 2 strofe + ritornello finale"_).
 - Funzione **Duplica scaletta** per riutilizzare rapidamente schemi ricorrenti.
 - **Uso autonomo:** fuori dalla modalità Live, qualsiasi musicista o corista può aprire una scaletta e scorrere i brani in sequenza in modalità leggio personale.
+
+### 6.3 Calendario Musicale (`calendar_events`)
+
+- Raccoglie gli appuntamenti del gruppo musicale per categoria: **Prova** (`rehearsal`), **Esibizione / Concerto** (`concert`), **Servizio** (`service`) e **Altro** (`other`).
+- Ogni appuntamento specifica data, ora di inizio (e fine opzionale), luogo, note e un eventuale collegamento diretto a una **Scaletta** del repertorio.
+- Supporta vista **Prossimi** (agenda cronologica) e vista **Mese** (griglia mensile interattiva con dettaglio del giorno selezionato).
 
 ---
 
@@ -199,7 +216,7 @@ La modalità Live consente al gruppo di suonare e provare in sincronia in tempo 
 ### 7.3 Ergonomia da Leggio (iPad, Smartphone, Desktop)
 
 - **Screen Wake Lock:** mantiene lo schermo acceso durante la lettura di brani, scalette e sessioni Live (con riacquisizione automatica al ritorno sull'app).
-- **Tre temi ottimizzati:** _Palco Notturno_ (`stage_dark`, default), _Nero OLED_ (`oled_black`) e _Giorno_ (`daylight`), progettati per elevato contrasto e zero abbagliamento in chiesa o sala prove.
+- **Tre temi ottimizzati:** _Chiaro_ (`daylight`, carta calda di default per la navigazione quotidiana), _Palco Notturno_ (`stage_dark`, ardesia scura con accordi in ottone caldo opaco) e _Nero OLED_ (`oled_black`), con toggle rapido `Chiaro / Palco Notturno` direttamente dentro il leggio.
 - **Layout adattivo:** 1 colonna ampia su smartphone portrait; opzione **2 colonne** su iPad/tablet in landscape per ridurre o azzerare lo scroll nei testi medi.
 - **Supporto pedali Bluetooth gira-pagina:** ascolto nativo degli eventi tastiera standard (`PageDown`, `PageUp`, `ArrowDown`, `ArrowUp`, `ArrowRight`, `ArrowLeft`) su lettore ChordPro, scaletta e PDF.
 
