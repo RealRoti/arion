@@ -274,7 +274,7 @@
       // Custom email templates in Italian (Magic Link + 6-digit OTP)
       "template": {
         "magic_link": {
-          "subject": "Accedi ad Arion — Codice di accesso",
+          "subject": "Accedi ad Arion - Codice di accesso",
           "content_path": "./supabase/templates/magic_link.html"
         }
       },

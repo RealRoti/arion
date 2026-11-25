@@ -4,6 +4,7 @@ import {
   Bug,
   ChevronRight,
   Code2,
+  Heart,
   ListMusic,
   Settings,
   ShieldCheck,
@@ -78,10 +79,24 @@ export function MoreMenuPage() {
       </div>
 
       <footer className="pb-2 pt-4 text-center text-xs leading-relaxed text-[var(--arion-text-muted)]">
-        <p className="font-editorial italic">{it.more.creditsLine1}</p>
-        <p className="mt-0.5 text-[11px] tracking-wide">
-          {it.more.creditsLine2} · {it.app.versionLabel(env.appVersion)}
+        <p>
+          {it.more.footerPrefix} {env.appVersion}, {it.more.footerMadeWith}{' '}
+          <Heart
+            className="inline h-3.5 w-3.5 fill-[var(--arion-live)] text-[var(--arion-live)]"
+            aria-label={it.more.footerLoveLabel}
+          />{' '}
+          {it.more.footerByPrefix}{' '}
+          <a
+            href={it.app.githubRepoUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="font-bold text-[var(--arion-primary)] underline decoration-[var(--arion-accent-border)] underline-offset-2 hover:text-[var(--arion-accent)]"
+          >
+            {it.more.footerAuthorName}
+          </a>
+          .
         </p>
+        <p className="mt-1 text-[11px] font-medium">{it.more.footerOpenSource}</p>
       </footer>
     </div>
   );

@@ -1,5 +1,12 @@
 import { useState, type ReactNode } from 'react';
-import { ArrowLeft, BookOpen, ChevronDown, ChevronUp, ShieldCheck } from 'lucide-react';
+import {
+  ArrowLeft,
+  BookOpen,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  ShieldCheck,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getAppEnv } from '@/config/env';
 import { it } from '@/i18n/it';
@@ -41,6 +48,9 @@ export function DeveloperInfoPage() {
           <h1 className="font-editorial text-2xl font-bold text-[var(--arion-text)] sm:text-3xl">
             {it.devInfo.title}
           </h1>
+          <p className="text-xs font-medium text-[var(--arion-text-muted)]">
+            {it.devInfo.openSourceNotice}
+          </p>
         </header>
 
         <section className="space-y-3">
@@ -68,6 +78,15 @@ export function DeveloperInfoPage() {
               <ShieldCheck className="h-4 w-4 text-[var(--arion-accent)]" aria-hidden="true" />
               <span>{it.devInfo.openPrivacyButton}</span>
             </Link>
+            <a
+              href={it.app.githubRepoUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="touch-target inline-flex items-center gap-2 rounded-md border border-[var(--arion-border)] bg-[var(--arion-bg)] px-4 py-2.5 text-sm font-bold text-[var(--arion-primary)] hover:border-[var(--arion-accent)]"
+            >
+              <ExternalLink className="h-4 w-4" aria-hidden="true" />
+              <span>{it.devInfo.viewRepoButton}</span>
+            </a>
           </div>
         </section>
 
@@ -119,15 +138,20 @@ export function DeveloperInfoPage() {
             isOpen={openSections.has('changelog')}
             onToggle={() => toggleSection('changelog')}
           >
-            <div className="border-l-2 border-l-[var(--arion-accent)] pl-3.5 text-sm">
-              <div className="font-bold text-[var(--arion-text)]">
-                {it.devInfo.changelogVersionTitle}
-              </div>
-              <ul className="mt-2 list-disc space-y-1.5 pl-5 text-[var(--arion-text-muted)]">
-                {it.devInfo.changelogItems.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
+            <div className="space-y-4">
+              {it.devInfo.changelogReleases.map((release) => (
+                <div
+                  key={release.version}
+                  className="border-l-2 border-l-[var(--arion-accent)] pl-3.5 text-sm"
+                >
+                  <div className="font-bold text-[var(--arion-text)]">{release.title}</div>
+                  <ul className="mt-1.5 list-disc space-y-1 pl-5 text-[var(--arion-text-muted)]">
+                    {release.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
           </AccordionSection>
 

@@ -1,11 +1,39 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it as vitestIt } from 'vitest';
+import { beforeEach, describe, expect, it as vitestIt, vi } from 'vitest';
 import { App } from '@/App';
+import { getAppEnv } from '@/config/env';
 import type { Instrument } from '@/domain/models/instruments';
+import type { Song } from '@/domain/models/songs';
 import { can, canAny, getPermissionsForRole, type Role } from '@/domain/rbac/permissions';
 import type { AuthContextValue } from '@/features/auth/authContextStore';
 import { it } from '@/i18n/it';
+
+const SAMPLE_SONG: Song = {
+  id: 'canto-di-prova',
+  title: 'Canto di Prova',
+  subtitle: 'Brano di prova',
+  author: 'Tradizionale (Demo)',
+  originalKey: 'Sol',
+  tempoBpm: 76,
+  timeSignature: '4/4',
+  tags: ['Ingresso'],
+  chordproContent:
+    '{start_of_verse: Strofa 1}\n[Sol]Ecco il [Sol/Si]canto che [Mim]sale\n{end_of_verse}',
+  conductorNotes: null,
+  pdfCount: 0,
+  createdAt: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-01T00:00:00Z',
+};
+
+vi.mock('@/services/songsService', () => ({
+  listSongs: vi.fn(async () => [SAMPLE_SONG]),
+  listRecentSongs: vi.fn(async () => [SAMPLE_SONG]),
+  getSongById: vi.fn(async (songId: string) => (songId === SAMPLE_SONG.id ? SAMPLE_SONG : null)),
+  listSongAssets: vi.fn(async () => []),
+  getUserSongPreferences: vi.fn(async () => null),
+  upsertUserSongPreferences: vi.fn(async () => undefined),
+}));
 
 function createMockAuth(
   role: Role,
@@ -89,20 +117,27 @@ describe('Arion App Navigation & RBAC Screens', () => {
     expect(screen.getByText(it.home.nextEventSampleTitle)).toBeInTheDocument();
   });
 
-  vitestIt('opens Repertorio, enters SongReaderPage, toggles chords and scales font', () => {
+  vitestIt('opens Repertorio, enters SongReaderPage, toggles chords and scales font', async () => {
     renderApp(['/repertorio']);
 
     expect(screen.getByRole('heading', { name: it.repertoire.title })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByRole('link', { name: it.repertoire.openSongLabel('Canto di Prova') }),
+      ).toBeInTheDocument();
+    });
+
     fireEvent.click(
       screen.getByRole('link', { name: it.repertoire.openSongLabel('Canto di Prova') }),
     );
 
-    expect(screen.getByRole('heading', { name: 'Canto di Prova' })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Canto di Prova' })).toBeInTheDocument();
+    });
     expect(screen.getByText('Sol/Si')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: it.reader.modeChords }));
+    fireEvent.click(screen.getByRole('button', { name: it.reader.modeLyricsOnly }));
     expect(screen.queryByText('Sol/Si')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: it.reader.modeLyricsOnly })).toBeInTheDocument();
 
     const body = screen.getByTestId('lectern-song-body');
     expect(body.style.fontSize).toBe('1rem');
@@ -114,7 +149,7 @@ describe('Arion App Navigation & RBAC Screens', () => {
 
   vitestIt(
     'defaults SongReaderPage to Solo Testo for a voice instrument and Chords for guitar',
-    () => {
+    async () => {
       const voiceInstrument: Instrument = {
         id: 'voice-1',
         slug: 'soprano',
@@ -131,8 +166,14 @@ describe('Arion App Navigation & RBAC Screens', () => {
         ['/repertorio/canto-di-prova'],
         createMockAuth('musician', 'authenticated', voiceInstrument),
       );
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: 'Canto di Prova' })).toBeInTheDocument();
+      });
       expect(screen.queryByText('Sol/Si')).not.toBeInTheDocument();
-      expect(screen.getByRole('button', { name: it.reader.modeLyricsOnly })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: it.reader.modeLyricsOnly })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
       unmount();
 
       const guitarInstrument: Instrument = {
@@ -151,8 +192,13 @@ describe('Arion App Navigation & RBAC Screens', () => {
         ['/repertorio/canto-di-prova'],
         createMockAuth('musician', 'authenticated', guitarInstrument),
       );
-      expect(screen.getByText('Sol/Si')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: it.reader.modeChords })).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Sol/Si')).toBeInTheDocument();
+      });
+      expect(screen.getByRole('button', { name: it.reader.modeChords })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
     },
   );
 
@@ -180,11 +226,19 @@ describe('Arion App Navigation & RBAC Screens', () => {
   });
 
   vitestIt(
-    'navigates through Altro menu to Settings, Support, Guide, Privacy and Developer Info',
+    'navigates through Altro menu, shows open-source Roti footer and reaches Developer Info releases',
     () => {
       renderApp(['/altro']);
 
       expect(screen.getByRole('heading', { name: it.more.title })).toBeInTheDocument();
+      expect(
+        screen.getByText(new RegExp(`versione ${getAppEnv().appVersion}`)),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: it.more.footerAuthorName })).toHaveAttribute(
+        'href',
+        it.app.githubRepoUrl,
+      );
+      expect(screen.getByText(it.more.footerOpenSource)).toBeInTheDocument();
 
       fireEvent.click(screen.getByRole('link', { name: it.nav.settings }));
       expect(screen.getByRole('heading', { name: it.settings.title })).toBeInTheDocument();
@@ -210,6 +264,9 @@ describe('Arion App Navigation & RBAC Screens', () => {
 
       fireEvent.click(screen.getByRole('button', { name: new RegExp(it.devInfo.techTitle) }));
       expect(screen.getByText(it.devInfo.techItems[0])).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: new RegExp(it.devInfo.changelogTitle) }));
+      expect(screen.getByText(it.devInfo.changelogReleases[0]!.title)).toBeInTheDocument();
     },
   );
 });

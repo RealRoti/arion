@@ -29,6 +29,12 @@ export interface OpenSourceLicense {
   readonly purpose: string;
 }
 
+export interface ChangelogRelease {
+  readonly version: string;
+  readonly title: string;
+  readonly items: readonly string[];
+}
+
 export const it = {
   app: {
     name: 'Arion',
@@ -38,6 +44,7 @@ export const it = {
     defaultGroupName: 'Il Mio Coro',
     defaultActiveInstrument: 'Voce / Corista',
     defaultDisplayName: 'Musicista',
+    githubRepoUrl: 'https://github.com/RealRoti/arion',
     versionLabel: (version: string) => `v${version}`,
   },
   nav: {
@@ -98,29 +105,152 @@ export const it = {
     quickSetlistsDesc: 'Sfoglia le sequenze preparate per prove e concerti',
     recentSongsTitle: 'Brani recenti',
     viewAllRepertoire: 'Vedi tutto',
+    emptyRecentSongs: 'Nessun brano ancora presente in repertorio.',
   },
   repertoire: {
     title: 'Repertorio',
-    searchPlaceholder: 'Cerca per titolo, parola o autore...',
+    searchPlaceholder: 'Cerca per titolo, testo, autore o tag...',
     clearSearchLabel: 'Pulisci ricerca',
     filterAll: 'Tutti',
+    keyFilterLabel: 'Filtra per tonalità',
+    keyFilterAll: 'Tutte le tonalità',
+    pdfOnlyFilter: 'Solo con PDF',
+    pdfBadge: 'PDF',
     setlistsShortcut: 'Scalette',
+    newSongButton: 'Nuovo brano',
     emptyTitle: 'Nessun brano trovato',
-    emptySubtitle: 'Prova a cambiare parola chiave o filtro di categoria.',
+    emptySubtitle: 'Prova a cambiare parola chiave o filtro selezionato.',
+    emptyArchiveTitle: 'Repertorio ancora vuoto',
+    emptyArchiveSubtitle:
+      'Aggiungi il primo brano o importa un file .docx per iniziare a costruire l’archivio.',
+    loadError: 'Impossibile caricare i brani dal repertorio.',
     openSongLabel: (title: string) => `Apri ${title} sul leggio`,
     songsCount: (count: number) => (count === 1 ? '1 brano' : `${count} brani`),
-    demoNotice:
-      'Brani dimostrativi locali: il catalogo completo sincronizzato verrà collegato con il database nella Milestone 1.5.',
+  },
+  songEditor: {
+    createTitle: 'Nuovo brano',
+    editTitle: 'Modifica brano',
+    backToRepertoire: 'Repertorio',
+    backToSong: 'Torna al brano',
+    titleLabel: 'Titolo del brano',
+    titlePlaceholder: 'Es. Canto del Mattino',
+    subtitleLabel: 'Sottotitolo (opzionale)',
+    subtitlePlaceholder: 'Es. Ingresso o riferimento raccolta',
+    authorLabel: 'Autore / Compositore (opzionale)',
+    authorPlaceholder: 'Es. Autore o tradizione',
+    originalKeyLabel: 'Tonalità originale',
+    tempoLabel: 'Tempo BPM (opzionale)',
+    tempoPlaceholder: 'Es. 76',
+    timeSignatureLabel: 'Metro (opzionale)',
+    timeSignaturePlaceholder: 'Es. 4/4, 3/4, 6/8',
+    tagsLabel: 'Tag / Categorie (separati da virgola)',
+    tagsPlaceholder: 'Es. Ingresso, Solenne, Assemblea',
+    conductorNotesLabel: 'Note del Maestro (visibili a tutto il gruppo)',
+    conductorNotesPlaceholder: 'Es. Intro solo organo 4 battute, poi entra il coro',
+    chordproLabel: 'Testo e accordi in formato ChordPro',
+    chordproHint:
+      'Inserisci gli accordi tra parentesi quadre prima della sillaba (es. [Sol]Ecco il [Re/Fa#]canto).',
+    previewTitle: 'Anteprima live sul leggio',
+    insertVerse: '+ Strofa',
+    insertChorus: '+ Ritornello',
+    insertBridge: '+ Ponte',
+    insertComment: '+ Nota',
+    verseTemplate: '{start_of_verse: Strofa}\n\n{end_of_verse}',
+    chorusTemplate: '{start_of_chorus: Ritornello}\n\n{end_of_chorus}',
+    bridgeTemplate: '{start_of_bridge: Ponte}\n\n{end_of_bridge}',
+    commentTemplate: '{c: Nota esecuzione}',
+    saveSongButton: 'Salva brano',
+    saveAndAddPdfButton: 'Salva e gestisci PDF',
+    savingButton: 'Salvataggio...',
+    savedMessage: 'Brano salvato nel repertorio.',
+    deleteSongButton: 'Elimina brano',
+    confirmDeletePrompt: 'Confermi l’eliminazione definitiva di questo brano e dei suoi allegati?',
+    confirmDeleteButton: 'Sì, elimina definitivamente',
+    deletingButton: 'Eliminazione...',
+    importToggleOpen: 'Importa da .docx o testo',
+    importToggleClose: 'Chiudi importatore',
+    importTitle: 'Wizard importazione (.docx / testo con accordi)',
+    importSubtitle:
+      'Carica un file .docx oppure incolla un testo con accordi sulla riga sopra: Arion lo converte in formato ChordPro.',
+    importDocxLabel: 'Carica file Word (.docx)',
+    importDocxButton: 'Scegli file .docx',
+    importDocxHint:
+      'Nota: i vecchi file binari .doc pre-2007 non sono supportati dal browser; salvali in .docx oppure incolla qui il testo.',
+    importPasteLabel: 'Oppure incolla qui testo e accordi',
+    importPastePlaceholder: 'Strofa 1:\nDo      Sol/Si  Lam\nEcco il canto che sale...',
+    importNotationLabel: 'Notazione di destinazione',
+    importConvertButton: 'Converti in ChordPro',
+    importPreviewTitle: 'Anteprima ChordPro generata',
+    importApplyButton: 'Applica all’editor',
+    importSuccess: (lines: number) =>
+      `Conversione completata (${lines} righe di accordi riconosciute).`,
+    importNoChordsWarning:
+      'Nessuna riga di accordi riconosciuta automaticamente: il testo è stato comunque importato in modo pulito.',
+    importLegacyDocError:
+      'I vecchi file binari .doc non sono leggibili nel browser. Converti il file in .docx oppure copia e incolla il testo.',
+    importInvalidDocxError: 'Il file selezionato non è un documento .docx valido.',
+    importGenericError: 'Errore durante l’importazione del documento.',
+    assetsTitle: 'Partiture e allegati PDF',
+    assetsSubtitle:
+      'Associa ciascun PDF a uno o più strumenti, oppure lascialo disponibile per tutto il gruppo.',
+    assetsEmpty: 'Nessun allegato PDF caricato per questo brano.',
+    assetsSaveFirstHint:
+      'Salva prima il brano (o usa "Salva e gestisci PDF") per caricare le partiture PDF.',
+    assetTitleLabel: 'Titolo parte / spartito',
+    assetTitlePlaceholder: 'Es. Partitura Organo oppure Parte Violino',
+    assetFileLabel: 'File PDF (max 25 MB)',
+    assetInstrumentsLabel: 'Strumenti / voci associati (opzionale)',
+    assetInstrumentsHint: 'Se non selezioni nulla, l’allegato sarà visibile a tutti.',
+    uploadPdfButton: 'Carica PDF',
+    uploadingPdfButton: 'Caricamento PDF...',
+    deleteAssetButton: 'Elimina PDF',
+    assetUploadedMessage: 'Allegato PDF caricato.',
+    assetDeletedMessage: 'Allegato PDF rimosso.',
+    generalAssetBadge: 'Tutti gli strumenti',
+    errors: {
+      titleRequired: 'Inserisci almeno il titolo del brano.',
+      invalidPdf: 'Seleziona un file PDF valido (.pdf).',
+      pdfTooLarge: 'Il file PDF supera il limite di 25 MB.',
+      notFound: 'Brano non trovato nel repertorio.',
+      generic: 'Si è verificato un errore durante l’operazione sul brano.',
+    },
   },
   reader: {
     backToRepertoire: 'Repertorio',
     modeLyricsOnly: 'Solo Testo',
     modeChords: 'Testo + Accordi',
+    modePdf: 'Spartito PDF',
+    editSongButton: 'Modifica',
     fontDecreaseLabel: 'Riduci dimensione testo',
     fontIncreaseLabel: 'Aumenta dimensione testo',
     fontDecreaseShort: 'A-',
     fontIncreaseShort: 'A+',
     fontScaleLabel: 'Scala testo',
+    twoColumnsLabel: '2 colonne',
+    nightScoreLabel: 'Night Score',
+    capoLabel: 'Capotasto',
+    capoNone: 'Nessuno',
+    capoFret: (fret: number) => `Tasto ${fret}`,
+    studyTransposeLabel: 'Studio tonalità',
+    transposeDownLabel: 'Abbassa tonalità di un semitono',
+    transposeUpLabel: 'Alza tonalità di un semitono',
+    transposeResetLabel: 'Originale',
+    readingKeyNote: (concertKey: string, capo: number, readingKey: string) =>
+      capo > 0
+        ? `Tonalità: ${concertKey} · Capo ${capo} (leggi in ${readingKey})`
+        : `Tonalità: ${concertKey} (leggi in ${readingKey})`,
+    conductorNotesTitle: 'Note del Maestro',
+    pdfSelectorLabel: 'Partitura',
+    pdfPrevPage: 'Pagina precedente',
+    pdfNextPage: 'Pagina successiva',
+    pdfPageStatus: (current: number, total: number) => `Pagina ${current} di ${total}`,
+    pdfZoomOut: 'Riduci zoom PDF',
+    pdfZoomIn: 'Aumenta zoom PDF',
+    pdfZoomFit: 'Adatta',
+    pdfLoading: 'Caricamento partitura PDF...',
+    pdfError: 'Impossibile aprire la partitura PDF.',
+    wakeLockActive: 'Schermo attivo',
+    emptyChordPro: 'Nessun testo con accordi inserito per questo brano.',
     keyPrefix: 'Tonalità:',
     tempoPrefix: 'Tempo:',
     authorLabel: 'Autore:',
@@ -192,8 +322,12 @@ export const it = {
     toolsSectionTitle: 'Strumenti e preferenze',
     adminSectionTitle: 'Amministrazione',
     supportSectionTitle: 'Supporto e informazioni',
-    creditsLine1: 'Arion — Armonia e Ritmo In Ogni Nota',
-    creditsLine2: 'Automatic Real-time Instrument and Orchestra Notation',
+    footerPrefix: 'Arion - Automatic Real-time Instrument and Orchestra Notation · versione',
+    footerMadeWith: 'Sviluppato con il',
+    footerLoveLabel: 'cuore',
+    footerByPrefix: 'da',
+    footerAuthorName: 'Roti',
+    footerOpenSource: 'Progetto open source · Codice sorgente disponibile su GitHub',
   },
   settings: {
     title: 'Profilo e preferenze',
@@ -389,10 +523,14 @@ export const it = {
   },
   devInfo: {
     title: "Informazioni sull'app",
-    kicker: 'Scheda del progetto',
+    kicker: 'Progetto Open Source',
+    openSourceBadge: 'Open Source - Codice su GitHub',
+    openSourceNotice:
+      'Arion è un progetto open source sviluppato con il cuore da Roti: il codice generico del framework è pubblico su GitHub, mentre i dati, gli utenti e gli spartiti di ciascun coro restano privati sulla propria istanza.',
+    viewRepoButton: 'Apri repository su GitHub',
     abstractParagraphs: [
-      'Arion (Armonia e Ritmo In Ogni Nota — Automatic Real-time Instrument and Orchestra Notation) è una Progressive Web App progettata per gestire repertorio, trasposizione accordi, scalette, calendario e sincronizzazione dal vivo per cori ed ensemble musicali.',
-      'Ogni componente musicale dell’organico — coristi, chitarristi, organisti, pianisti e strumentisti a fiato o ad arco — visualizza il brano nella modalità più adatta al proprio strumento.',
+      'Arion (Armonia e Ritmo In Ogni Nota - Automatic Real-time Instrument and Orchestra Notation) è una Progressive Web App open source progettata per gestire repertorio, trasposizione accordi, scalette, calendario e sincronizzazione dal vivo per cori ed ensemble musicali.',
+      'Ogni componente musicale dell’organico - coristi, chitarristi, organisti, pianisti e strumentisti a fiato o ad arco - visualizza il brano nella modalità più adatta al proprio strumento.',
       'L’applicazione è pensata per funzionare in modo fluido su iPad, tablet Android, smartphone e desktop, senza dipendenze da servizi di tracciamento esterni.',
     ],
     openGuideButton: "Apri Guida all'uso",
@@ -402,29 +540,29 @@ export const it = {
     techItems: [
       'Frontend PWA in React 19, TypeScript strict, Vite + Workbox e Tailwind CSS v4 con caratteri di sistema offline.',
       'Architettura a strati: logica musicale pura in src/domain/, adapter infrastrutturali disaccoppiati in src/services/ e moduli UI per dominio.',
-      'Backend previsto su PostgreSQL + Supabase (Auth Magic Link + OTP 6 cifre, Row Level Security su tabelle e Storage, Realtime Broadcast + Presence), pronto per migrazione self-hosted su Docker.',
+      'Backend su PostgreSQL + Supabase (Auth Magic Link + OTP 6 cifre, Row Level Security su tabelle e Storage, Realtime Broadcast + Presence), pronto per migrazione self-hosted su Docker.',
       'Rendering PDF affidabile su iPad/iOS via PDF.js su canvas e cache offline locale tramite IndexedDB (Dexie).',
     ],
     stagesTitle: 'Fasi di sviluppo',
     stagesSubtitle: 'Percorso incrementale dalla Fase 1 alla Fase 3',
     stages: [
       {
-        phase: 'Fase 1 — MVP Prove, Repertorio e Live v1',
-        status: 'In corso (Milestone 1.4)',
+        phase: 'Fase 1 - MVP Prove, Repertorio e Live v1',
+        status: 'In corso (Milestone 1.5)',
         details: [
           'Shell PWA a 5 tab, temi Carta / Palco Notturno / Nero OLED e accessibilità da leggio.',
           'Database PostgreSQL con RLS, Auth invite-only OTP, catalogo strumenti dinamico, motore ChordPro ITA/ENG, PDF.js, Scalette, Calendario e Live Realtime.',
         ],
       },
       {
-        phase: 'Fase 2 — Studio Personale, Offline Avanzato & MIDI',
+        phase: 'Fase 2 - Studio Personale, Offline Avanzato & MIDI',
         status: 'Pianificata',
         details: [
           'Note personali private per brano, gestione quota cache offline e player MIDI browser-side per studiare la propria voce.',
         ],
       },
       {
-        phase: 'Fase 3 — MusicXML Interattivo & Self-Hosting',
+        phase: 'Fase 3 - MusicXML Interattivo & Self-Hosting',
         status: 'Pianificata',
         isTarget: true,
         details: [
@@ -433,14 +571,58 @@ export const it = {
       },
     ] satisfies readonly DevStage[],
     changelogTitle: 'Changelog',
-    changelogSubtitle: 'Cronologia delle milestone rilasciate',
-    changelogVersionTitle: 'Versione 0.1.0 — Base UI, navigazione a 5 tab e Design System',
-    changelogItems: [
-      'Struttura repository white-label con documentazione di specifica e piano a fasi.',
-      'Design system realistico con temi Chiaro, Palco Notturno e Nero OLED e scala testo Compatto/Esteso.',
-      'Navigazione mobile/tablet a 5 destinazioni (Home, Repertorio, Live centrale, Calendario, Altro) e sidebar desktop.',
-      'Schermate base navigabili con anteprima Leggio, Calendario mensile, Scalette e sottopagine di supporto.',
-    ],
+    changelogSubtitle: 'Cronologia delle versioni e milestone rilasciate',
+    changelogReleases: [
+      {
+        version: '0.1.5',
+        title: 'Versione 0.1.5 - Repertorio reale, Editor ChordPro, Import .docx e Leggio PDF.js',
+        items: [
+          'Archivio brani persistente su PostgreSQL con ricerca full-text, filtri per tag, tonalità e presenza PDF.',
+          'Editor ChordPro con anteprima live affiancata, wizard di importazione da .docx / testo incollato e gestione allegati PDF per strumento.',
+          'Leggio unificato con vista automatica per voce/strumento, trasposizione live, capotasto locale, 2 colonne su tablet, Wake Lock, pedale Bluetooth e viewer PDF.js con Night Score.',
+        ],
+      },
+      {
+        version: '0.1.4',
+        title: 'Versione 0.1.4 - Motore musicale ChordPro, Traspositore ITA/ENG e Importatore',
+        items: [
+          'Parser accordi italiani e internazionali con varianti miste dal web e slash chords.',
+          'Traspositore sul circolo delle quinte con calcolo combinato tonalità brano, strumento traspositore e capotasto.',
+          'Parser/serializzatore ChordPro ed estrattore .docx lato browser tramite Mammoth.js.',
+        ],
+      },
+      {
+        version: '0.1.3',
+        title: 'Versione 0.1.3 - Catalogo dinamico strumenti e Selettore rapido 1-tap',
+        items: [
+          'Gestione Admin completa del catalogo voci e strumenti (creazione, modifica, riordino e abilita/disabilita).',
+          'Profilo musicale multi-strumento con strumento predefinito e selettore rapido 1-tap nella barra dell’app.',
+        ],
+      },
+      {
+        version: '0.1.2',
+        title: 'Versione 0.1.2 - Accesso invite-only OTP e Pannello Amministrazione',
+        items: [
+          'Schermata di accesso su invito con supporto Magic Link e codice OTP a 6 cifre in-app per PWA iOS.',
+          'Configurazione identità white-label dell’istanza (nome, sottotitolo, logo privato) e gestione whitelist/ruoli.',
+        ],
+      },
+      {
+        version: '0.1.1',
+        title: 'Versione 0.1.1 - Schema PostgreSQL, Policy RLS e Storage privato',
+        items: [
+          'Migrazioni SQL complete con Row Level Security default-deny, trigger anti-escalation e bucket Storage privati.',
+        ],
+      },
+      {
+        version: '0.1.0',
+        title: 'Versione 0.1.0 - Base UI, navigazione a 5 tab e Design System',
+        items: [
+          'Struttura repository open-source white-label con documentazione di specifica e piano a fasi.',
+          'Design system realistico con temi Chiaro, Palco Notturno e Nero OLED e scala testo Compatto/Esteso.',
+        ],
+      },
+    ] satisfies readonly ChangelogRelease[],
     licensesTitle: 'Componenti e licenze open source',
     licensesSubtitle: 'Librerie software utilizzate nel progetto',
     licenses: [
@@ -485,6 +667,12 @@ export const it = {
         license: 'BSD-2-Clause License',
         copyright: 'Michael Williamson',
         purpose: 'Estrazione client-side del testo da documenti .docx',
+      },
+      {
+        name: 'PDF.js (pdfjs-dist)',
+        license: 'Apache License 2.0',
+        copyright: 'Mozilla Foundation',
+        purpose: 'Rendering client-side degli spartiti PDF su canvas',
       },
     ] satisfies readonly OpenSourceLicense[],
   },

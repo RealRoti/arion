@@ -1,7 +1,7 @@
 {
   "name": "arion",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.5",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -24,6 +24,7 @@
     "@supabase/supabase-js": "^2.119.2",
     "lucide-react": "^1.80.0",
     "mammoth": "^1.13.0",
+    "pdfjs-dist": "^6.5.438",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-router-dom": "^7.18.7"

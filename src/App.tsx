@@ -20,8 +20,9 @@ import { MoreMenuPage } from '@/features/more/MoreMenuPage';
 import { PrivacyPage } from '@/features/more/PrivacyPage';
 import { SettingsPage } from '@/features/more/SettingsPage';
 import { SupportPage } from '@/features/more/SupportPage';
+import { SongReaderPage } from '@/features/reader/SongReaderPage';
 import { RepertoirePage } from '@/features/repertoire/RepertoirePage';
-import { SongReaderPage } from '@/features/repertoire/SongReaderPage';
+import { SongEditorPage } from '@/features/repertoire/SongEditorPage';
 import { SetlistsPage } from '@/features/setlists/SetlistsPage';
 import { it } from '@/i18n/it';
 
@@ -86,6 +87,8 @@ function AppGate() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/repertorio" element={<RepertoirePage />} />
+        <Route path="/repertorio/nuovo" element={<SongEditorPage />} />
+        <Route path="/repertorio/:songId/modifica" element={<SongEditorPage />} />
         <Route path="/repertorio/:songId" element={<SongReaderPage />} />
         <Route path="/live" element={<LivePage />} />
         <Route path="/calendario" element={<CalendarPage />} />

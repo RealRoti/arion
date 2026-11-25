@@ -1,15 +1,50 @@
+import { useEffect, useState } from 'react';
 import { BookOpen, Calendar, ChevronRight, ListMusic, Radio } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/PageHeader';
+import { useTheme } from '@/components/useTheme';
+import { getAppEnv } from '@/config/env';
+import { formatKey, parseKey } from '@/domain/chords/transposer';
+import type { Song } from '@/domain/models/songs';
 import { useAuth } from '@/features/auth/useAuth';
-import { DEMO_SONGS } from '@/features/repertoire/demoSongs';
 import { it } from '@/i18n/it';
+import { listRecentSongs } from '@/services/songsService';
 
 export function HomePage() {
   const { profile } = useAuth();
+  const { notation } = useTheme();
+  const isSupabaseConfigured = getAppEnv().isSupabaseConfigured;
+  const [recentSongs, setRecentSongs] = useState<Song[]>([]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) {
+      return;
+    }
+    let cancelled = false;
+    const loadRecent = async () => {
+      try {
+        const loaded = await listRecentSongs(5);
+        if (!cancelled) {
+          setRecentSongs(loaded);
+        }
+      } catch {
+        // Non-blocking recent songs list
+      }
+    };
+    void loadRecent();
+    return () => {
+      cancelled = true;
+    };
+  }, [isSupabaseConfigured]);
+
   const currentHour = new Date().getHours();
   const firstName = profile?.displayName.trim().split(/\s+/)[0] || it.app.defaultDisplayName;
   const greeting = it.home.greeting(currentHour, firstName);
+
+  const formatSongKey = (rawKey: string) => {
+    const parsed = parseKey(rawKey);
+    return parsed ? formatKey(parsed, notation) : rawKey;
+  };
 
   return (
     <div className="space-y-5">
@@ -131,28 +166,35 @@ export function HomePage() {
           </Link>
         </div>
 
-        <div className="divide-y divide-[var(--arion-border)] overflow-hidden rounded-md border border-[var(--arion-border)] bg-[var(--arion-surface)] shadow-2xs">
-          {DEMO_SONGS.map((song) => (
-            <Link
-              key={song.id}
-              to={`/repertorio/${song.id}`}
-              className="touch-target flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-[var(--arion-surface-subtle)]"
-            >
-              <div className="min-w-0">
-                <p className="truncate text-base font-bold text-[var(--arion-text)]">
-                  {song.title}
-                </p>
-                <p className="text-xs text-[var(--arion-text-muted)]">
-                  {song.author} · {it.reader.keyPrefix} {song.key}
-                </p>
-              </div>
-              <ChevronRight
-                className="h-4 w-4 shrink-0 text-[var(--arion-text-muted)]"
-                aria-hidden="true"
-              />
-            </Link>
-          ))}
-        </div>
+        {recentSongs.length === 0 ? (
+          <div className="rounded-md border border-[var(--arion-border)] bg-[var(--arion-surface)] p-4 text-sm text-[var(--arion-text-muted)] shadow-2xs">
+            {it.home.emptyRecentSongs}
+          </div>
+        ) : (
+          <div className="divide-y divide-[var(--arion-border)] overflow-hidden rounded-md border border-[var(--arion-border)] bg-[var(--arion-surface)] shadow-2xs">
+            {recentSongs.map((song) => (
+              <Link
+                key={song.id}
+                to={`/repertorio/${song.id}`}
+                className="touch-target flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-[var(--arion-surface-subtle)]"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-base font-bold text-[var(--arion-text)]">
+                    {song.title}
+                  </p>
+                  <p className="text-xs text-[var(--arion-text-muted)]">
+                    {song.author ? `${song.author} · ` : ''}
+                    {it.reader.keyPrefix} {formatSongKey(song.originalKey)}
+                  </p>
+                </div>
+                <ChevronRight
+                  className="h-4 w-4 shrink-0 text-[var(--arion-text-muted)]"
+                  aria-hidden="true"
+                />
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );
