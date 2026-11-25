@@ -65,6 +65,8 @@ Il codice applicativo non controlla **mai** `user.role === '...'`; verifica semp
 | `assets:delete`      | Eliminazione allegati di un brano                                              |   ✅    |     ✅      |     ❌     |
 | `setlists:read`      | Consultazione scalette e lettura autonoma in sequenza                          |   ✅    |     ✅      |     ✅     |
 | `setlists:manage`    | Creazione, modifica, ordinamento, duplicazione ed eliminazione scalette        |   ✅    |     ✅      |     ❌     |
+| `calendar:read`      | Consultazione calendario musicale (prove, esibizioni, servizi)                 |   ✅    |     ✅      |     ✅     |
+| `calendar:manage`    | Creazione, modifica ed eliminazione appuntamenti in calendario                 |   ✅    |     ✅      |     ❌     |
 | `live:host`          | Avvio, conduzione, cambio brano/sezione/tonalità, segnali e chiusura Live      |   ✅    |     ✅      |     ❌     |
 | `live:takeover`      | Subentro nella conduzione di una sessione Live già attiva                      |   ✅    |     ✅      |     ❌     |
 | `live:join`          | Partecipazione al Live, ricezione sync, sgancio/riaggancio locale              |   ✅    |     ✅      |     ✅     |
