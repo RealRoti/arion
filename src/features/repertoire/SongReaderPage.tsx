@@ -1,15 +1,28 @@
 import { useState } from 'react';
-import { ArrowLeft, Eye, Moon, Sun } from 'lucide-react';
+import { ArrowLeft, Eye, Moon, Music2, Sun } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { useTheme } from '@/components/useTheme';
+import { getEffectiveDefaultShowChords } from '@/domain/models/instruments';
+import { useAuth } from '@/features/auth/useAuth';
 import { DEMO_SONGS } from '@/features/repertoire/demoSongs';
 import { it } from '@/i18n/it';
 
 export function SongReaderPage() {
   const { songId } = useParams<{ songId: string }>();
   const { theme, setTheme } = useTheme();
-  const [showChords, setShowChords] = useState(true);
+  const { activeInstrument } = useAuth();
+
+  const currentInstrumentId = activeInstrument?.id ?? null;
+  const [prevInstrumentId, setPrevInstrumentId] = useState<string | null>(currentInstrumentId);
+  const [showChords, setShowChords] = useState<boolean>(() =>
+    getEffectiveDefaultShowChords(activeInstrument),
+  );
   const [fontScale, setFontScale] = useState(1);
+
+  if (currentInstrumentId !== prevInstrumentId) {
+    setPrevInstrumentId(currentInstrumentId);
+    setShowChords(getEffectiveDefaultShowChords(activeInstrument));
+  }
 
   const song = DEMO_SONGS.find((item) => item.id === songId);
 
@@ -124,6 +137,12 @@ export function SongReaderPage() {
               {it.reader.authorLabel}{' '}
               <strong className="text-[var(--arion-text)]">{song.author}</strong>
             </span>
+            {activeInstrument ? (
+              <span className="inline-flex items-center gap-1 rounded border border-[var(--arion-accent-border)] bg-[var(--arion-accent-soft)] px-2 py-0.5 text-[11px] font-bold text-[var(--arion-accent)]">
+                <Music2 className="h-3 w-3" aria-hidden="true" />
+                <span>{activeInstrument.name}</span>
+              </span>
+            ) : null}
           </div>
         </header>
 

@@ -169,9 +169,11 @@ export async function fetchOwnProfile(userId: string): Promise<UserProfile | nul
 
 export interface UpdateOwnProfileInput {
   displayName?: string;
+  activeInstrumentId?: string | null;
   preferredTheme?: ThemeMode;
   preferredTextSize?: TextSizeMode;
   preferredNotation?: NotationSystem;
+  fontScale?: number;
 }
 
 export async function updateOwnProfile(
@@ -179,10 +181,13 @@ export async function updateOwnProfile(
   patch: UpdateOwnProfileInput,
 ): Promise<UserProfile> {
   const supabase = getSupabaseClient();
-  const payload: Record<string, string> = {};
+  const payload: Record<string, string | number | null> = {};
 
   if (patch.displayName !== undefined) {
     payload.display_name = patch.displayName.trim();
+  }
+  if (patch.activeInstrumentId !== undefined) {
+    payload.active_instrument_id = patch.activeInstrumentId;
   }
   if (patch.preferredTheme !== undefined) {
     payload.preferred_theme = patch.preferredTheme;
@@ -192,6 +197,9 @@ export async function updateOwnProfile(
   }
   if (patch.preferredNotation !== undefined) {
     payload.preferred_notation = patch.preferredNotation;
+  }
+  if (patch.fontScale !== undefined) {
+    payload.font_scale = patch.fontScale;
   }
 
   const { data, error } = await supabase

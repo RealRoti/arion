@@ -209,7 +209,7 @@ export const it = {
     profileSavedMessage: 'Nome aggiornato.',
     signOutButton: 'Esci',
     accountNote:
-      'La gestione multi-strumento e il selettore rapido dalla barra arriveranno nella Milestone 1.3.',
+      'Puoi cambiare strumento o voce attiva in un tocco dalla barra superiore (o in basso nella barra laterale).',
     themeHint:
       'Scegli Chiaro per l’uso quotidiano oppure Palco Notturno / Nero OLED per ambienti poco illuminati.',
     privacyButton: "Leggi l'informativa sulla privacy",
@@ -410,7 +410,7 @@ export const it = {
     stages: [
       {
         phase: 'Fase 1 — MVP Prove, Repertorio e Live v1',
-        status: 'In corso (Milestone 1.0)',
+        status: 'In corso (Milestone 1.3)',
         details: [
           'Shell PWA a 5 tab, temi Carta / Palco Notturno / Nero OLED e accessibilità da leggio.',
           'Database PostgreSQL con RLS, Auth invite-only OTP, catalogo strumenti dinamico, motore ChordPro ITA/ENG, PDF.js, Scalette, Calendario e Live Realtime.',
@@ -510,9 +510,93 @@ export const it = {
         id: 'instruments',
         title: 'Catalogo strumenti e voci',
         description: 'Abilita, disabilita e configura trasposizioni per voci e strumenti.',
-        milestone: 'Milestone 1.3',
+        milestone: 'Attivo',
       },
     ],
+  },
+  instruments: {
+    categories: {
+      voice: 'Voce',
+      instrument: 'Strumento',
+    },
+    defaultViews: {
+      lyrics_only: 'Solo Testo',
+      chords: 'Testo + Accordi',
+      pdf: 'Spartito PDF',
+    },
+    concertPitch: 'In Do (nessuna)',
+    transpositionLabel: (semitones: number) => {
+      if (semitones === 0) return 'In Do (0)';
+      if (semitones === 2) return '+2 semitoni (Sib)';
+      if (semitones === -3) return '-3 semitoni (Mib)';
+      if (semitones === 7) return '+7 semitoni (Fa)';
+      return semitones > 0 ? `+${semitones} semitoni` : `${semitones} semitoni`;
+    },
+    capoSupported: 'Capotasto',
+    switcherButtonLabel: 'Cambia strumento o voce attiva',
+    switcherMenuLabel: 'Seleziona strumento o voce attiva',
+    myInstrumentsHeading: 'I miei strumenti e voci',
+    otherInstrumentsHeading: 'Altri strumenti abilitati',
+    allInstrumentsHeading: 'Strumenti e voci abilitati',
+    manageMyInstrumentsLink: 'Gestisci i miei strumenti',
+    noInstrumentsAvailable: 'Nessuno strumento abilitato al momento.',
+  },
+  profileInstruments: {
+    sectionTitle: 'I miei strumenti e voci',
+    subtitle:
+      'Associa tutte le voci o gli strumenti che usi: potrai passarci in un tocco dal leggio o dalla barra.',
+    voicesGroupTitle: 'Voci',
+    instrumentsGroupTitle: 'Strumenti',
+    primaryBadge: 'Predefinito',
+    setPrimaryLabel: 'Imposta come predefinito',
+    activeViewHint: (viewLabel: string) => `Vista predefinita: ${viewLabel}`,
+    saveButton: 'Salva i miei strumenti',
+    savingButton: 'Salvataggio...',
+    savedMessage: 'Strumenti del profilo aggiornati.',
+    emptyCatalog: 'Nessuna voce o strumento abilitato nel catalogo.',
+    noSelectionHint: 'Seleziona almeno una voce o uno strumento e scegli il predefinito.',
+    saveError: 'Impossibile salvare gli strumenti del profilo.',
+  },
+  adminInstruments: {
+    title: 'Catalogo strumenti e voci',
+    subtitle:
+      'Abilita, disabilita, riordina o aggiungi voci e strumenti disponibili per il gruppo.',
+    filterAll: 'Tutti',
+    filterEnabled: 'Abilitati',
+    filterDisabled: 'Disabilitati',
+    formCreateTitle: 'Nuovo strumento o voce',
+    formEditTitle: 'Modifica strumento o voce',
+    nameLabel: 'Nome visualizzato',
+    namePlaceholder: 'Es. Tromba in Sib',
+    slugLabel: 'Identificatore slug (opzionale)',
+    slugPlaceholder: 'Generato automaticamente dal nome',
+    categoryLabel: 'Categoria',
+    defaultViewLabel: 'Vista predefinita sul leggio',
+    transpositionLabel: 'Trasposizione strumento',
+    supportsCapoLabel: 'Supporta capotasto (es. chitarra, ukulele)',
+    isEnabledLabel: 'Visibile e selezionabile dagli utenti',
+    createButton: 'Aggiungi al catalogo',
+    creatingButton: 'Aggiunta...',
+    saveButton: 'Salva modifiche',
+    savingButton: 'Salvataggio...',
+    cancelEditButton: 'Annulla modifica',
+    moveUpLabel: 'Sposta su',
+    moveDownLabel: 'Sposta giù',
+    editButton: 'Modifica',
+    enableButton: 'Abilita',
+    disableButton: 'Disabilita',
+    statusEnabled: 'Abilitato',
+    statusDisabled: 'Disabilitato',
+    emptyList: 'Nessuno strumento in questa vista.',
+    createdMessage: 'Strumento aggiunto al catalogo.',
+    updatedMessage: 'Strumento aggiornato.',
+    reorderedMessage: 'Ordine aggiornato.',
+    reorderHint: 'Per riordinare gli elementi usa la vista Tutti.',
+    errors: {
+      duplicateSlug: 'Esiste già uno strumento o una voce con questo identificatore (slug).',
+      invalidInput: 'Controlla il nome e i valori inseriti.',
+      generic: 'Errore durante l’aggiornamento del catalogo strumenti.',
+    },
   },
   adminInstance: {
     title: 'Identità istanza',
@@ -549,6 +633,8 @@ export const it = {
     displayNameLabel: 'Nome mostrato (opzionale)',
     displayNamePlaceholder: 'Es. Mario Rossi',
     roleLabel: 'Ruolo operativo',
+    defaultInstrumentsLabel: 'Strumenti / voci iniziali (opzionale)',
+    defaultInstrumentsHint: 'Verranno associati automaticamente al primo accesso dell’utente.',
     addInviteButton: 'Autorizza email',
     addingInviteButton: 'Salvataggio...',
     inviteAddedMessage: 'Email aggiunta agli inviti autorizzati.',

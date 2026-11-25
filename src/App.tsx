@@ -4,6 +4,7 @@ import { AppShell } from '@/components/AppShell';
 import { ArionLogo } from '@/components/ArionLogo';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { AdminInstancePage } from '@/features/admin/AdminInstancePage';
+import { AdminInstrumentsPage } from '@/features/admin/AdminInstrumentsPage';
 import { AdminPanelPage } from '@/features/admin/AdminPanelPage';
 import { AdminUsersPage } from '@/features/admin/AdminUsersPage';
 import type { AuthContextValue } from '@/features/auth/authContextStore';
@@ -98,6 +99,7 @@ function AppGate() {
         <Route path="/admin" element={<AdminPanelPage />} />
         <Route path="/admin/istanza" element={<AdminInstancePage />} />
         <Route path="/admin/utenti" element={<AdminUsersPage />} />
+        <Route path="/admin/strumenti" element={<AdminInstrumentsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AppShell>

@@ -29,7 +29,7 @@ const CARD_META: Record<
   },
   instruments: {
     icon: Music2,
-    to: null,
+    to: '/admin/strumenti',
     permission: 'instruments:manage',
   },
 };

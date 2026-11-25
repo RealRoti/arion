@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react';
-import { BookOpen, Calendar, Home, Menu, Music2, Radio } from 'lucide-react';
+import { BookOpen, Calendar, Home, Menu, Radio } from 'lucide-react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { ArionLogo } from '@/components/ArionLogo';
 import { getAppEnv } from '@/config/env';
 import { useAuth } from '@/features/auth/useAuth';
+import { ActiveInstrumentSwitcher } from '@/features/profile/ActiveInstrumentSwitcher';
 import { it } from '@/i18n/it';
 
 interface AppShellProps {
@@ -91,13 +92,7 @@ export function AppShell({ children }: AppShellProps) {
         </nav>
 
         <div className="border-t border-[var(--arion-border)] px-5 py-3">
-          <Link
-            to="/impostazioni"
-            className="flex items-center gap-2 rounded-md border border-[var(--arion-border)] bg-[var(--arion-surface-subtle)] px-3 py-2 text-xs font-semibold text-[var(--arion-text)] hover:border-[var(--arion-accent)]"
-          >
-            <Music2 className="h-4 w-4 shrink-0 text-[var(--arion-accent)]" aria-hidden="true" />
-            <span className="truncate">{it.app.defaultActiveInstrument}</span>
-          </Link>
+          <ActiveInstrumentSwitcher placement="up" />
           <p className="mt-2.5 text-[11px] font-medium text-[var(--arion-text-muted)]">
             {it.app.name} {it.app.versionLabel(env.appVersion)}
           </p>
@@ -112,16 +107,7 @@ export function AppShell({ children }: AppShellProps) {
             <Link to="/" className="min-w-0">
               <ArionLogo size="sm" showWordmark title={groupName} logoUrl={logoUrl} />
             </Link>
-            <Link
-              to="/impostazioni"
-              className="inline-flex max-w-[46%] items-center gap-1.5 rounded-md border border-[var(--arion-border)] bg-[var(--arion-surface-subtle)] px-2.5 py-1.5 text-xs font-semibold text-[var(--arion-text)]"
-            >
-              <Music2
-                className="h-3.5 w-3.5 shrink-0 text-[var(--arion-accent)]"
-                aria-hidden="true"
-              />
-              <span className="truncate">{it.app.defaultActiveInstrument}</span>
-            </Link>
+            <ActiveInstrumentSwitcher placement="down" className="max-w-[52%]" />
           </div>
         </header>
 

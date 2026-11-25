@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it as vitestIt } from 'vitest';
 import { App } from '@/App';
+import type { Instrument } from '@/domain/models/instruments';
 import { can, canAny, getPermissionsForRole, type Role } from '@/domain/rbac/permissions';
 import type { AuthContextValue } from '@/features/auth/authContextStore';
 import { it } from '@/i18n/it';
@@ -9,6 +10,7 @@ import { it } from '@/i18n/it';
 function createMockAuth(
   role: Role,
   status: AuthContextValue['status'] = 'authenticated',
+  activeInstrument: Instrument | null = null,
 ): AuthContextValue {
   const permissions = getPermissionsForRole(role, status === 'authenticated');
   return {
@@ -21,7 +23,7 @@ function createMockAuth(
             displayName: 'Test Demo',
             role,
             isActive: true,
-            activeInstrumentId: null,
+            activeInstrumentId: activeInstrument?.id ?? null,
             preferredNotation: 'italian',
             preferredTheme: 'daylight',
             preferredTextSize: 'compact',
@@ -42,10 +44,15 @@ function createMockAuth(
             updatedAt: new Date().toISOString(),
           }
         : null,
+    instruments: activeInstrument ? [activeInstrument] : [],
+    userInstruments: [],
+    activeInstrument,
     can: (perm) => can(permissions, perm),
     canAny: (reqs) => canAny(permissions, reqs),
+    setActiveInstrument: async () => undefined,
     refreshProfile: async () => undefined,
     refreshInstanceSettings: async () => undefined,
+    refreshInstruments: async () => undefined,
     signOut: async () => undefined,
   };
 }
@@ -104,6 +111,50 @@ describe('Arion App Navigation & RBAC Screens', () => {
     fireEvent.click(screen.getByRole('button', { name: it.reader.fontDecreaseLabel }));
     expect(body.style.fontSize).toBe('1rem');
   });
+
+  vitestIt(
+    'defaults SongReaderPage to Solo Testo for a voice instrument and Chords for guitar',
+    () => {
+      const voiceInstrument: Instrument = {
+        id: 'voice-1',
+        slug: 'soprano',
+        name: 'Soprano',
+        category: 'voice',
+        defaultView: 'lyrics_only',
+        transpositionSemitones: 0,
+        supportsCapo: false,
+        isEnabled: true,
+        sortOrder: 10,
+      };
+
+      const { unmount } = renderApp(
+        ['/repertorio/canto-di-prova'],
+        createMockAuth('musician', 'authenticated', voiceInstrument),
+      );
+      expect(screen.queryByText('Sol/Si')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: it.reader.modeLyricsOnly })).toBeInTheDocument();
+      unmount();
+
+      const guitarInstrument: Instrument = {
+        id: 'guitar-1',
+        slug: 'chitarra',
+        name: 'Chitarra',
+        category: 'instrument',
+        defaultView: 'chords',
+        transpositionSemitones: 0,
+        supportsCapo: true,
+        isEnabled: true,
+        sortOrder: 20,
+      };
+
+      renderApp(
+        ['/repertorio/canto-di-prova'],
+        createMockAuth('musician', 'authenticated', guitarInstrument),
+      );
+      expect(screen.getByText('Sol/Si')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: it.reader.modeChords })).toBeInTheDocument();
+    },
+  );
 
   vitestIt('switches CalendarPage between Prossimi and Mese views', () => {
     renderApp(['/calendario']);

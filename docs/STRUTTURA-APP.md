@@ -90,6 +90,7 @@ arion/
 │       ├── auth/                   # Login email -> Magic Link + input OTP 6 cifre
 │       ├── home/                   # Home operativa: saluto, prossimo appuntamento, stato Live, accesso rapido
 │       ├── admin/                  # Pannello Admin: istanza white-label, utenti/inviti, catalogo strumenti
+│       ├── profile/                # Profilo musicale multi-strumento e selettore rapido 1-tap
 │       ├── repertoire/             # Lista brani, ricerca/tag, leggio, editor ChordPro, wizard import .docx, PDF
 │       ├── reader/                 # Leggio unificato (ChordPro renderer, PDF.js canvas, Night Score, Wake Lock, pedale)
 │       ├── setlists/               # Gestione scalette, riordino, override tonalità, lettura in sequenza

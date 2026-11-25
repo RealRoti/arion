@@ -4,9 +4,11 @@ import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/PageHeader';
 import { RequirePermission } from '@/components/RequirePermission';
 import type { AllowedEmailEntry, UserProfile } from '@/domain/models/auth';
+import type { Instrument } from '@/domain/models/instruments';
 import { ROLES, type Role } from '@/domain/rbac/permissions';
 import { useAuth } from '@/features/auth/useAuth';
 import { it } from '@/i18n/it';
+import { listInstruments } from '@/services/instrumentsService';
 import {
   createAllowedEmail,
   deleteAllowedEmail,
@@ -21,11 +23,13 @@ export function AdminUsersPage() {
   const { refreshProfile } = useAuth();
   const [invites, setInvites] = useState<AllowedEmailEntry[]>([]);
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
+  const [availableInstruments, setAvailableInstruments] = useState<Instrument[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [newEmail, setNewEmail] = useState('');
   const [newDisplayName, setNewDisplayName] = useState('');
   const [newRole, setNewRole] = useState<Role>('musician');
+  const [selectedInstrumentIds, setSelectedInstrumentIds] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -35,13 +39,15 @@ export function AdminUsersPage() {
     let cancelled = false;
     const fetchInitial = async () => {
       try {
-        const [loadedInvites, loadedProfiles] = await Promise.all([
+        const [loadedInvites, loadedProfiles, loadedInstruments] = await Promise.all([
           listAllowedEmails(),
           listProfiles(),
+          listInstruments({ includeDisabled: false }).catch(() => []),
         ]);
         if (!cancelled) {
           setInvites(loadedInvites);
           setProfiles(loadedProfiles);
+          setAvailableInstruments(loadedInstruments);
         }
       } catch {
         if (!cancelled) {
@@ -85,11 +91,13 @@ export function AdminUsersPage() {
         email: newEmail,
         role: newRole,
         displayName: newDisplayName,
+        defaultInstrumentIds: selectedInstrumentIds,
       });
       setInvites((prev) => [created, ...prev]);
       setNewEmail('');
       setNewDisplayName('');
       setNewRole('musician');
+      setSelectedInstrumentIds([]);
       setStatusMessage(it.adminUsers.inviteAddedMessage);
     } catch (err) {
       handleError(err);
@@ -242,6 +250,43 @@ export function AdminUsersPage() {
               </select>
             </div>
           </div>
+
+          {availableInstruments.length > 0 ? (
+            <div className="space-y-1.5">
+              <p className="text-xs font-bold text-[var(--arion-text)]">
+                {it.adminUsers.defaultInstrumentsLabel}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {availableInstruments.map((inst) => {
+                  const selected = selectedInstrumentIds.includes(inst.id);
+                  return (
+                    <button
+                      key={inst.id}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() =>
+                        setSelectedInstrumentIds((prev) =>
+                          prev.includes(inst.id)
+                            ? prev.filter((id) => id !== inst.id)
+                            : [...prev, inst.id],
+                        )
+                      }
+                      className={`touch-target rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors ${
+                        selected
+                          ? 'border-[var(--arion-primary)] bg-[var(--arion-primary)] text-[var(--arion-primary-contrast)]'
+                          : 'border-[var(--arion-border)] bg-[var(--arion-bg)] text-[var(--arion-text)] hover:border-[var(--arion-accent)]'
+                      }`}
+                    >
+                      {inst.name}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-[var(--arion-text-muted)]">
+                {it.adminUsers.defaultInstrumentsHint}
+              </p>
+            </div>
+          ) : null}
 
           <button
             type="submit"

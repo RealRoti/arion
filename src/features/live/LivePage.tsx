@@ -1,9 +1,12 @@
 import { BookOpen, ListMusic, Music2, Radio } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/PageHeader';
+import { useAuth } from '@/features/auth/useAuth';
 import { it } from '@/i18n/it';
 
 export function LivePage() {
+  const { activeInstrument } = useAuth();
+
   return (
     <div className="space-y-5">
       <PageHeader title={it.live.title} />
@@ -24,7 +27,9 @@ export function LivePage() {
         <div className="mt-4 flex items-center gap-2.5 rounded-md border border-[var(--arion-border)] bg-[var(--arion-bg)] px-3.5 py-2.5 text-sm">
           <Music2 className="h-4 w-4 shrink-0 text-[var(--arion-accent)]" aria-hidden="true" />
           <span className="text-[var(--arion-text-muted)]">{it.live.activeInstrumentLabel}:</span>
-          <strong className="text-[var(--arion-text)]">{it.app.defaultActiveInstrument}</strong>
+          <strong className="text-[var(--arion-text)]">
+            {activeInstrument?.name ?? it.app.defaultActiveInstrument}
+          </strong>
         </div>
 
         <div className="mt-5 flex flex-wrap gap-2.5">

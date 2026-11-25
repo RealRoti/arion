@@ -4,6 +4,11 @@ import { useTheme } from '@/components/useTheme';
 import { getAppEnv } from '@/config/env';
 import type { InstanceSettings, UserProfile } from '@/domain/models/auth';
 import {
+  resolveActiveInstrument,
+  type Instrument,
+  type UserInstrumentAssignment,
+} from '@/domain/models/instruments';
+import {
   can as checkPermission,
   canAny as checkAnyPermission,
   getPermissionsForRole,
@@ -19,8 +24,10 @@ import {
   getSession,
   onAuthStateChange,
   signOut as signOutService,
+  updateOwnProfile,
 } from '@/services/authService';
 import { fetchInstanceSettings } from '@/services/instanceService';
+import { listInstruments, listUserInstruments } from '@/services/instrumentsService';
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -37,6 +44,8 @@ export function AuthProvider({ children, valueOverride }: AuthProviderProps) {
   );
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [instanceSettings, setInstanceSettings] = useState<InstanceSettings | null>(null);
+  const [instruments, setInstruments] = useState<Instrument[]>([]);
+  const [userInstruments, setUserInstruments] = useState<UserInstrumentAssignment[]>([]);
   const [sessionUserId, setSessionUserId] = useState<string | null>(null);
   const lastSyncedUserIdRef = useRef<string | null>(null);
 
@@ -47,6 +56,8 @@ export function AuthProvider({ children, valueOverride }: AuthProviderProps) {
         setSessionUserId(null);
         setProfile(null);
         setInstanceSettings(null);
+        setInstruments([]);
+        setUserInstruments([]);
         setStatus('unauthenticated');
         return;
       }
@@ -54,20 +65,27 @@ export function AuthProvider({ children, valueOverride }: AuthProviderProps) {
       setSessionUserId(session.user.id);
 
       try {
-        const [loadedProfile, loadedSettings] = await Promise.all([
-          fetchOwnProfile(session.user.id),
-          fetchInstanceSettings().catch(() => null),
-        ]);
+        const [loadedProfile, loadedSettings, loadedInstruments, loadedUserInstruments] =
+          await Promise.all([
+            fetchOwnProfile(session.user.id),
+            fetchInstanceSettings().catch(() => null),
+            listInstruments({ includeDisabled: false }).catch(() => []),
+            listUserInstruments(session.user.id).catch(() => []),
+          ]);
 
         if (!loadedProfile) {
           setProfile(null);
           setInstanceSettings(null);
+          setInstruments([]);
+          setUserInstruments([]);
           setStatus('unauthenticated');
           return;
         }
 
         setProfile(loadedProfile);
         setInstanceSettings(loadedSettings);
+        setInstruments(loadedInstruments);
+        setUserInstruments(loadedUserInstruments);
 
         if (!loadedProfile.isActive) {
           setStatus('inactive');
@@ -86,6 +104,8 @@ export function AuthProvider({ children, valueOverride }: AuthProviderProps) {
         console.error('[Arion Auth] Failed to load session context', error);
         setProfile(null);
         setInstanceSettings(null);
+        setInstruments([]);
+        setUserInstruments([]);
         setStatus('unauthenticated');
       }
     },
@@ -141,14 +161,53 @@ export function AuthProvider({ children, valueOverride }: AuthProviderProps) {
     setInstanceSettings(updated);
   }, []);
 
+  const refreshInstruments = useCallback(async () => {
+    const loadedInstruments = await listInstruments({ includeDisabled: false });
+    setInstruments(loadedInstruments);
+    if (sessionUserId) {
+      const loadedAssignments = await listUserInstruments(sessionUserId);
+      setUserInstruments(loadedAssignments);
+    }
+  }, [sessionUserId]);
+
+  const setActiveInstrument = useCallback(
+    async (instrumentId: string) => {
+      if (!profile) {
+        return;
+      }
+      const previousInstrumentId = profile.activeInstrumentId;
+      if (previousInstrumentId === instrumentId) {
+        return;
+      }
+
+      setProfile((prev) => (prev ? { ...prev, activeInstrumentId: instrumentId } : prev));
+      try {
+        const updated = await updateOwnProfile(profile.id, { activeInstrumentId: instrumentId });
+        setProfile(updated);
+      } catch (error) {
+        console.error('[Arion Auth] Failed to update active instrument', error);
+        setProfile((prev) => (prev ? { ...prev, activeInstrumentId: previousInstrumentId } : prev));
+      }
+    },
+    [profile],
+  );
+
   const signOut = useCallback(async () => {
     await signOutService();
     lastSyncedUserIdRef.current = null;
     setSessionUserId(null);
     setProfile(null);
     setInstanceSettings(null);
+    setInstruments([]);
+    setUserInstruments([]);
     setStatus('unauthenticated');
   }, []);
+
+  const activeInstrument = useMemo(
+    () =>
+      resolveActiveInstrument(instruments, userInstruments, profile?.activeInstrumentId ?? null),
+    [instruments, profile?.activeInstrumentId, userInstruments],
+  );
 
   const permissions = useMemo(
     () => getPermissionsForRole(profile?.role, profile?.isActive ?? false),
@@ -174,22 +233,32 @@ export function AuthProvider({ children, valueOverride }: AuthProviderProps) {
       profile,
       permissions,
       instanceSettings,
+      instruments,
+      userInstruments,
+      activeInstrument,
       can,
       canAny,
+      setActiveInstrument,
       refreshProfile,
       refreshInstanceSettings,
+      refreshInstruments,
       signOut,
     };
   }, [
+    activeInstrument,
     can,
     canAny,
     instanceSettings,
+    instruments,
     permissions,
     profile,
     refreshInstanceSettings,
+    refreshInstruments,
     refreshProfile,
+    setActiveInstrument,
     signOut,
     status,
+    userInstruments,
     valueOverride,
   ]);
 

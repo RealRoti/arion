@@ -88,6 +88,7 @@ export interface CreateAllowedEmailInput {
   email: string;
   role: Role;
   displayName?: string;
+  defaultInstrumentIds?: readonly string[];
 }
 
 export async function createAllowedEmail(
@@ -103,6 +104,7 @@ export async function createAllowedEmail(
       email: normalizedEmail,
       role: input.role,
       display_name: trimmedName.length > 0 ? trimmedName : null,
+      default_instrument_ids: input.defaultInstrumentIds ? [...input.defaultInstrumentIds] : [],
       is_active: true,
     })
     .select('id, email, role, display_name, default_instrument_ids, is_active, created_at')

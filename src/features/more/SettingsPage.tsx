@@ -12,6 +12,7 @@ import {
   type ThemeMode,
 } from '@/domain/models/theme';
 import { useAuth } from '@/features/auth/useAuth';
+import { MusicalProfileSection } from '@/features/profile/MusicalProfileSection';
 import { it } from '@/i18n/it';
 import { updateOwnProfile, type UpdateOwnProfileInput } from '@/services/authService';
 
@@ -33,9 +34,15 @@ const NOTATION_LABELS: Record<NotationSystem, string> = {
 
 export function SettingsPage() {
   const { theme, setTheme, textSize, setTextSize, notation, setNotation } = useTheme();
-  const { profile, instanceSettings, refreshProfile, signOut, status } = useAuth();
+  const { profile, instanceSettings, activeInstrument, refreshProfile, signOut, status } =
+    useAuth();
 
+  const [prevProfileName, setPrevProfileName] = useState(profile?.displayName ?? '');
   const [displayName, setDisplayName] = useState(profile?.displayName ?? '');
+  if ((profile?.displayName ?? '') !== prevProfileName) {
+    setPrevProfileName(profile?.displayName ?? '');
+    setDisplayName(profile?.displayName ?? '');
+  }
   const [savingName, setSavingName] = useState(false);
   const [savedNotice, setSavedNotice] = useState<string | null>(null);
   const [errorNotice, setErrorNotice] = useState<string | null>(null);
@@ -100,7 +107,7 @@ export function SettingsPage() {
               {it.settings.instrumentLabel}
             </p>
             <p className="mt-0.5 text-sm font-bold text-[var(--arion-text)]">
-              {it.app.defaultActiveInstrument}
+              {activeInstrument?.name ?? it.app.defaultActiveInstrument}
             </p>
           </div>
           {profile ? (
@@ -164,6 +171,8 @@ export function SettingsPage() {
 
         <p className="text-xs text-[var(--arion-text-muted)]">{it.settings.accountNote}</p>
       </section>
+
+      <MusicalProfileSection />
 
       {/* Theme selector */}
       <section className="space-y-3 rounded-md border border-[var(--arion-border)] bg-[var(--arion-surface)] p-4 shadow-2xs">

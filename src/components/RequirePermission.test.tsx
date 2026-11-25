@@ -26,10 +26,15 @@ function buildAuthOverride(role: Role): AuthContextValue {
     },
     permissions,
     instanceSettings: null,
+    instruments: [],
+    userInstruments: [],
+    activeInstrument: null,
     can: (perm) => can(permissions, perm),
     canAny: (reqs) => canAny(permissions, reqs),
+    setActiveInstrument: async () => undefined,
     refreshProfile: async () => undefined,
     refreshInstanceSettings: async () => undefined,
+    refreshInstruments: async () => undefined,
     signOut: async () => undefined,
   };
 }
