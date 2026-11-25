@@ -122,7 +122,7 @@ export const it = {
     emptySubtitle: 'Prova a cambiare parola chiave o filtro selezionato.',
     emptyArchiveTitle: 'Repertorio ancora vuoto',
     emptyArchiveSubtitle:
-      'Aggiungi il primo brano o importa un file .docx per iniziare a costruire l’archivio.',
+      'Aggiungi il primo brano o importa un file (.docx, .pdf, MusicXML) per iniziare a costruire l’archivio.',
     loadError: 'Impossibile caricare i brani dal repertorio.',
     openSongLabel: (title: string) => `Apri ${title} sul leggio`,
     songsCount: (count: number) => (count === 1 ? '1 brano' : `${count} brani`),
@@ -167,15 +167,15 @@ export const it = {
     confirmDeletePrompt: 'Confermi l’eliminazione definitiva di questo brano e dei suoi allegati?',
     confirmDeleteButton: 'Sì, elimina definitivamente',
     deletingButton: 'Eliminazione...',
-    importToggleOpen: 'Importa da .docx o testo',
+    importToggleOpen: 'Importa da file o testo',
     importToggleClose: 'Chiudi importatore',
-    importTitle: 'Wizard importazione (.docx / testo con accordi)',
+    importTitle: 'Wizard importazione (Word, PDF, MusicXML o testo)',
     importSubtitle:
-      'Carica un file .docx oppure incolla un testo con accordi sulla riga sopra: Arion lo converte in formato ChordPro.',
-    importDocxLabel: 'Carica file Word (.docx)',
-    importDocxButton: 'Scegli file .docx',
-    importDocxHint:
-      'Nota: i vecchi file binari .doc pre-2007 non sono supportati dal browser; salvali in .docx oppure incolla qui il testo.',
+      'Carica un file .docx, .pdf testuale o .musicxml / .mxl, oppure incolla testo e accordi: Arion lo converte in formato ChordPro.',
+    importFileLabel: 'Carica file (.docx, .pdf, .musicxml, .mxl)',
+    importFileButton: 'Scegli file da importare',
+    importFileHint:
+      'Supporta Word (.docx), PDF con testo selezionabile e MusicXML (.musicxml / .mxl, esportabili da Finale). Per spartiti PDF scansionati o completi usa "Partiture e allegati PDF" in fondo.',
     importPasteLabel: 'Oppure incolla qui testo e accordi',
     importPastePlaceholder: 'Strofa 1:\nDo      Sol/Si  Lam\nEcco il canto che sale...',
     importNotationLabel: 'Notazione di destinazione',
@@ -189,6 +189,15 @@ export const it = {
     importLegacyDocError:
       'I vecchi file binari .doc non sono leggibili nel browser. Converti il file in .docx oppure copia e incolla il testo.',
     importInvalidDocxError: 'Il file selezionato non è un documento .docx valido.',
+    importScannedPdfError:
+      'Questo PDF sembra una scansione o immagine (senza testo selezionabile) e non può essere convertito in ChordPro. Caricalo nella sezione "Partiture e allegati PDF" in fondo alla pagina per leggerlo sul leggio.',
+    importInvalidPdfError: 'Il file selezionato non è un documento PDF valido.',
+    importMusxUnsupportedError:
+      'I file Finale .musx usano un formato binario proprietario non leggibile dal browser. Da Finale esporta in MusicXML (.musicxml o .mxl) per importare testo e accordi qui, oppure esporta in PDF per allegare lo spartito grafico in fondo alla pagina.',
+    importInvalidMusicXmlError:
+      'Il file selezionato non è un file MusicXML (.musicxml / .mxl) valido.',
+    importUnsupportedFormatError:
+      'Formato file non supportato. Usa .docx, .pdf (testuale), .musicxml o .mxl, oppure incolla testo e accordi qui sotto.',
     importGenericError: 'Errore durante l’importazione del documento.',
     assetsTitle: 'Partiture e allegati PDF',
     assetsSubtitle:
@@ -322,12 +331,12 @@ export const it = {
     toolsSectionTitle: 'Strumenti e preferenze',
     adminSectionTitle: 'Amministrazione',
     supportSectionTitle: 'Supporto e informazioni',
-    footerPrefix: 'Arion - Automatic Real-time Instrument and Orchestra Notation · versione',
+    footerBrandLine: 'Arion - Automatic Real-time Instrument and Orchestra Notation',
+    footerVersionLabel: (version: string) => `Versione ${version}`,
     footerMadeWith: 'Sviluppato con il',
     footerLoveLabel: 'cuore',
     footerByPrefix: 'da',
     footerAuthorName: 'Roti',
-    footerOpenSource: 'Progetto open source · Codice sorgente disponibile su GitHub',
   },
   settings: {
     title: 'Profilo e preferenze',
@@ -574,6 +583,16 @@ export const it = {
     changelogSubtitle: 'Cronologia delle versioni e milestone rilasciate',
     changelogReleases: [
       {
+        version: '0.1.6',
+        title: 'Versione 0.1.6 - Importatore PDF testuale, MusicXML e rifinitura footer',
+        items: [
+          'Estrazione testo e accordi in colonna dai file PDF testuali tramite PDF.js con rilevamento automatico dei PDF scansionati.',
+          'Importazione diretta da MusicXML (.musicxml, .xml e archivi compressi .mxl) con titolo, autore, tonalità, metro, BPM, accordi e sillabe del testo.',
+          'Riconoscimento guidato dei file proprietari Finale .musx con indicazioni chiare per l’esportazione in MusicXML o PDF.',
+          'Footer della schermata Altro compattato su due righe con riga versione/autore in piccolo.',
+        ],
+      },
+      {
         version: '0.1.5',
         title: 'Versione 0.1.5 - Repertorio reale, Editor ChordPro, Import .docx e Leggio PDF.js',
         items: [
@@ -672,7 +691,13 @@ export const it = {
         name: 'PDF.js (pdfjs-dist)',
         license: 'Apache License 2.0',
         copyright: 'Mozilla Foundation',
-        purpose: 'Rendering client-side degli spartiti PDF su canvas',
+        purpose: 'Rendering client-side e estrazione testo degli spartiti PDF',
+      },
+      {
+        name: 'JSZip',
+        license: 'MIT License',
+        copyright: 'Stuart Knightley & JSZip Contributors',
+        purpose: 'Decompressione client-side degli archivi MusicXML compressi (.mxl)',
       },
     ] satisfies readonly OpenSourceLicense[],
   },

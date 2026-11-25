@@ -226,19 +226,20 @@ describe('Arion App Navigation & RBAC Screens', () => {
   });
 
   vitestIt(
-    'navigates through Altro menu, shows open-source Roti footer and reaches Developer Info releases',
+    'navigates through Altro menu, shows compact Roti footer and reaches Developer Info releases',
     () => {
       renderApp(['/altro']);
 
       expect(screen.getByRole('heading', { name: it.more.title })).toBeInTheDocument();
+      expect(screen.getByText(it.more.footerBrandLine)).toBeInTheDocument();
       expect(
-        screen.getByText(new RegExp(`versione ${getAppEnv().appVersion}`)),
+        screen.getByText(new RegExp(it.more.footerVersionLabel(getAppEnv().appVersion))),
       ).toBeInTheDocument();
       expect(screen.getByRole('link', { name: it.more.footerAuthorName })).toHaveAttribute(
         'href',
         it.app.githubRepoUrl,
       );
-      expect(screen.getByText(it.more.footerOpenSource)).toBeInTheDocument();
+      expect(screen.queryByText(/Codice sorgente disponibile su GitHub/i)).not.toBeInTheDocument();
 
       fireEvent.click(screen.getByRole('link', { name: it.nav.settings }));
       expect(screen.getByRole('heading', { name: it.settings.title })).toBeInTheDocument();

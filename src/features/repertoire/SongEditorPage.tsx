@@ -230,8 +230,17 @@ export function SongEditorPage() {
                   if (!title.trim() && imported.detectedTitle) {
                     setTitle(imported.detectedTitle);
                   }
+                  if (!author.trim() && imported.detectedAuthor) {
+                    setAuthor(imported.detectedAuthor);
+                  }
                   if (imported.detectedKey) {
                     setOriginalKey(imported.detectedKey);
+                  }
+                  if (!timeSignature.trim() && imported.detectedTimeSignature) {
+                    setTimeSignature(imported.detectedTimeSignature);
+                  }
+                  if (!tempoBpm.trim() && imported.detectedTempoBpm) {
+                    setTempoBpm(String(imported.detectedTempoBpm));
                   }
                   setShowImporter(false);
                 }}

@@ -1,7 +1,7 @@
 {
   "name": "arion",
   "private": true,
-  "version": "0.1.5",
+  "version": "0.1.6",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.2",
+    "jszip": "^3.10.2",
     "lucide-react": "^1.80.0",
     "mammoth": "^1.13.0",
     "pdfjs-dist": "^6.5.438",

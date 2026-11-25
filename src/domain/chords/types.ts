@@ -92,5 +92,8 @@ export interface TextImportResult {
   readonly detectedTitle: string | null;
   readonly detectedKey: string | null;
   readonly detectedChordLines: number;
+  readonly detectedAuthor?: string | null;
+  readonly detectedTimeSignature?: string | null;
+  readonly detectedTempoBpm?: number | null;
   readonly warnings: readonly string[];
 }

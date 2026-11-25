@@ -5,6 +5,11 @@ import {
   DocxImportError,
   importSongFromDocxArrayBuffer,
 } from '@/domain/chords/importer';
+import {
+  importSongFromMusicXmlArrayBuffer,
+  MusicXmlImportError,
+} from '@/domain/chords/musicXmlImporter';
+import { importSongFromPdfArrayBuffer, PdfImportError } from '@/domain/chords/pdfImporter';
 import type { NotationSystem } from '@/domain/models/theme';
 import { useTheme } from '@/components/useTheme';
 import { it } from '@/i18n/it';
@@ -14,6 +19,9 @@ interface SongImportWizardProps {
     chordpro: string;
     detectedTitle: string | null;
     detectedKey: string | null;
+    detectedAuthor?: string | null;
+    detectedTimeSignature?: string | null;
+    detectedTempoBpm?: number | null;
   }) => void;
 }
 
@@ -24,6 +32,9 @@ export function SongImportWizard({ onApply }: SongImportWizardProps) {
   const [convertedChordPro, setConvertedChordPro] = useState('');
   const [detectedTitle, setDetectedTitle] = useState<string | null>(null);
   const [detectedKey, setDetectedKey] = useState<string | null>(null);
+  const [detectedAuthor, setDetectedAuthor] = useState<string | null>(null);
+  const [detectedTimeSignature, setDetectedTimeSignature] = useState<string | null>(null);
+  const [detectedTempoBpm, setDetectedTempoBpm] = useState<number | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -33,11 +44,17 @@ export function SongImportWizard({ onApply }: SongImportWizardProps) {
     detectedTitle: string | null;
     detectedKey: string | null;
     detectedChordLines: number;
+    detectedAuthor?: string | null;
+    detectedTimeSignature?: string | null;
+    detectedTempoBpm?: number | null;
     warnings: readonly string[];
   }) => {
     setConvertedChordPro(result.chordpro);
     setDetectedTitle(result.detectedTitle);
     setDetectedKey(result.detectedKey);
+    setDetectedAuthor(result.detectedAuthor ?? null);
+    setDetectedTimeSignature(result.detectedTimeSignature ?? null);
+    setDetectedTempoBpm(result.detectedTempoBpm ?? null);
     setErrorMessage(null);
     setStatusMessage(
       result.warnings.includes('no_chords_detected')
@@ -46,7 +63,7 @@ export function SongImportWizard({ onApply }: SongImportWizardProps) {
     );
   };
 
-  const handleDocxUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
@@ -56,9 +73,40 @@ export function SongImportWizard({ onApply }: SongImportWizardProps) {
     setStatusMessage(null);
 
     try {
+      const lowerName = file.name.trim().toLowerCase();
+
+      if (lowerName.endsWith('.musx')) {
+        setErrorMessage(it.songEditor.importMusxUnsupportedError);
+        return;
+      }
+
       const buffer = await file.arrayBuffer();
-      const result = await importSongFromDocxArrayBuffer(buffer, file.name, { targetNotation });
-      applyConversionResult(result);
+
+      if (
+        lowerName.endsWith('.musicxml') ||
+        lowerName.endsWith('.xml') ||
+        lowerName.endsWith('.mxl')
+      ) {
+        const result = await importSongFromMusicXmlArrayBuffer(buffer, file.name, {
+          targetNotation,
+        });
+        applyConversionResult(result);
+        return;
+      }
+
+      if (lowerName.endsWith('.pdf')) {
+        const result = await importSongFromPdfArrayBuffer(buffer, { targetNotation });
+        applyConversionResult(result);
+        return;
+      }
+
+      if (lowerName.endsWith('.docx') || lowerName.endsWith('.doc')) {
+        const result = await importSongFromDocxArrayBuffer(buffer, file.name, { targetNotation });
+        applyConversionResult(result);
+        return;
+      }
+
+      setErrorMessage(it.songEditor.importUnsupportedFormatError);
     } catch (err) {
       if (err instanceof DocxImportError) {
         if (err.code === 'LEGACY_DOC_UNSUPPORTED') {
@@ -67,6 +115,26 @@ export function SongImportWizard({ onApply }: SongImportWizardProps) {
         }
         if (err.code === 'INVALID_DOCX') {
           setErrorMessage(it.songEditor.importInvalidDocxError);
+          return;
+        }
+      }
+      if (err instanceof PdfImportError) {
+        if (err.code === 'SCANNED_PDF_NO_TEXT') {
+          setErrorMessage(it.songEditor.importScannedPdfError);
+          return;
+        }
+        if (err.code === 'INVALID_PDF') {
+          setErrorMessage(it.songEditor.importInvalidPdfError);
+          return;
+        }
+      }
+      if (err instanceof MusicXmlImportError) {
+        if (err.code === 'FINALE_MUSX_UNSUPPORTED') {
+          setErrorMessage(it.songEditor.importMusxUnsupportedError);
+          return;
+        }
+        if (err.code === 'INVALID_MUSICXML') {
+          setErrorMessage(it.songEditor.importInvalidMusicXmlError);
           return;
         }
       }
@@ -95,25 +163,25 @@ export function SongImportWizard({ onApply }: SongImportWizardProps) {
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <label
-            htmlFor="import-docx-input"
+            htmlFor="import-file-input"
             className="block text-xs font-bold text-[var(--arion-text)]"
           >
-            {it.songEditor.importDocxLabel}
+            {it.songEditor.importFileLabel}
           </label>
           <label className="touch-target inline-flex cursor-pointer items-center gap-2 rounded-md border border-[var(--arion-border)] bg-[var(--arion-surface)] px-3.5 py-2 text-xs font-bold text-[var(--arion-text)] hover:border-[var(--arion-accent)]">
             <FileUp className="h-4 w-4 text-[var(--arion-accent)]" aria-hidden="true" />
-            <span>{it.songEditor.importDocxButton}</span>
+            <span>{it.songEditor.importFileButton}</span>
             <input
-              id="import-docx-input"
+              id="import-file-input"
               type="file"
               disabled={busy}
-              accept=".docx,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword"
-              onChange={(e) => void handleDocxUpload(e)}
+              accept=".docx,.doc,.pdf,.musicxml,.xml,.mxl,.musx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,application/vnd.recordare.musicxml+xml,application/vnd.recordare.musicxml,application/xml,text/xml"
+              onChange={(e) => void handleFileUpload(e)}
               className="sr-only"
             />
           </label>
           <p className="text-[11px] text-[var(--arion-text-muted)]">
-            {it.songEditor.importDocxHint}
+            {it.songEditor.importFileHint}
           </p>
         </div>
 
@@ -188,6 +256,9 @@ export function SongImportWizard({ onApply }: SongImportWizardProps) {
                 chordpro: convertedChordPro,
                 detectedTitle,
                 detectedKey,
+                detectedAuthor,
+                detectedTimeSignature,
+                detectedTempoBpm,
               })
             }
             className="touch-target rounded-md bg-[var(--arion-primary)] px-4 py-2 text-xs font-bold text-[var(--arion-primary-contrast)] hover:bg-[var(--arion-primary-hover)]"

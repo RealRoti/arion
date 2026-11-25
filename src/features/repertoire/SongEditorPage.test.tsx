@@ -133,4 +133,64 @@ describe('SongEditorPage & Import Wizard', () => {
       });
     },
   );
+
+  vitestIt(
+    'shows guided warning for Finale .musx and imports MusicXML metadata and chords',
+    async () => {
+      renderEditor('conductor');
+
+      fireEvent.click(screen.getByRole('button', { name: it.songEditor.importToggleOpen }));
+
+      const fileInput = screen.getByLabelText(it.songEditor.importFileLabel);
+
+      // Uploading Finale .musx shows guided export message
+      const musxFile = new File([new Uint8Array([0x50, 0x4b, 0x03, 0x04])], 'canto.musx', {
+        type: 'application/octet-stream',
+      });
+      fireEvent.change(fileInput, { target: { files: [musxFile] } });
+
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toHaveTextContent(
+          it.songEditor.importMusxUnsupportedError,
+        );
+      });
+
+      // Uploading valid .musicxml converts and applies title, author, key, tempo, time signature & chords
+      const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+        <score-partwise version="4.0">
+          <work><work-title>Inno MusicXML</work-title></work>
+          <identification><creator type="composer">Compositore Demo</creator></identification>
+          <part-list><score-part id="P1"><part-name>Voce</part-name></score-part></part-list>
+          <part id="P1">
+            <measure number="1">
+              <attributes>
+                <key><fifths>0</fifths><mode>major</mode></key>
+                <time><beats>3</beats><beat-type>4</beat-type></time>
+              </attributes>
+              <direction><sound tempo="92"/></direction>
+              <harmony><root><root-step>C</root-step></root><kind>major</kind></harmony>
+              <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration><lyric><syllabic>single</syllabic><text>Lode</text></lyric></note>
+            </measure>
+          </part>
+        </score-partwise>`;
+
+      const xmlFile = new File([xmlContent], 'inno.musicxml', { type: 'application/xml' });
+      Object.defineProperty(xmlFile, 'arrayBuffer', {
+        value: async () => new TextEncoder().encode(xmlContent).buffer,
+      });
+
+      fireEvent.change(fileInput, { target: { files: [xmlFile] } });
+
+      await waitFor(() => {
+        expect(screen.getByText(it.songEditor.importSuccess(1))).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: it.songEditor.importApplyButton }));
+
+      expect(screen.getByLabelText(it.songEditor.titleLabel)).toHaveValue('Inno MusicXML');
+      expect(screen.getByLabelText(it.songEditor.authorLabel)).toHaveValue('Compositore Demo');
+      expect(screen.getByLabelText(it.songEditor.timeSignatureLabel)).toHaveValue('3/4');
+      expect(screen.getByLabelText(it.songEditor.tempoLabel)).toHaveValue(92);
+    },
+  );
 });

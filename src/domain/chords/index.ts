@@ -3,3 +3,5 @@ export * from '@/domain/chords/parser';
 export * from '@/domain/chords/transposer';
 export * from '@/domain/chords/chordpro';
 export * from '@/domain/chords/importer';
+export * from '@/domain/chords/pdfImporter';
+export * from '@/domain/chords/musicXmlImporter';

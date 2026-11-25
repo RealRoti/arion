@@ -78,11 +78,12 @@ export function MoreMenuPage() {
         </section>
       </div>
 
-      <footer className="pb-2 pt-4 text-center text-xs leading-relaxed text-[var(--arion-text-muted)]">
-        <p>
-          {it.more.footerPrefix} {env.appVersion}, {it.more.footerMadeWith}{' '}
+      <footer className="pb-2 pt-4 text-center leading-relaxed text-[var(--arion-text-muted)]">
+        <p className="text-xs font-medium">{it.more.footerBrandLine}</p>
+        <p className="mt-1 text-[11px]">
+          {it.more.footerVersionLabel(env.appVersion)}, {it.more.footerMadeWith}{' '}
           <Heart
-            className="inline h-3.5 w-3.5 fill-[var(--arion-live)] text-[var(--arion-live)]"
+            className="inline h-3 w-3 fill-[var(--arion-live)] text-[var(--arion-live)]"
             aria-label={it.more.footerLoveLabel}
           />{' '}
           {it.more.footerByPrefix}{' '}
@@ -94,9 +95,7 @@ export function MoreMenuPage() {
           >
             {it.more.footerAuthorName}
           </a>
-          .
         </p>
-        <p className="mt-1 text-[11px] font-medium">{it.more.footerOpenSource}</p>
       </footer>
     </div>
   );
