@@ -355,7 +355,7 @@ export async function extractTextFromPdfArrayBuffer(buffer: ArrayBuffer): Promis
       ].filter((code): code is number => typeof code === 'number'),
     );
 
-    const loadingTask = pdfjs.getDocument({ data: bytes });
+    const loadingTask = pdfjs.getDocument({ data: bytes.slice() });
     const doc = await loadingTask.promise;
 
     try {

@@ -666,6 +666,15 @@ export const it = {
     changelogSubtitle: 'Cronologia delle versioni e milestone rilasciate',
     changelogReleases: [
       {
+        version: '0.1.8',
+        title: 'Versione 0.1.8 - Fix stabilità OCR su PDF scansionati e ibridi',
+        items: [
+          'Evitato il distacco del buffer PDF tra lettura iniziale e avvio OCR grazie alla copia sicura del file e dei byte.',
+          'Forzato lo sfondo bianco nella rasterizzazione PDF per OCR e inclusione esplicita di testo + blocchi nel motore Tesseract.',
+          'Garantita la chiusura del worker OCR e la gestione ordinata degli errori in caso di file illegibili.',
+        ],
+      },
+      {
         version: '0.1.7',
         title:
           'Versione 0.1.7 - Scalette reali, Calendario musicale, Email supporto e OCR opzionale',

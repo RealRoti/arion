@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it as vitestIt, vi } from 'vitest';
 import {
   importSongFromOcrImageBlob,
+  importSongFromOcrPdfArrayBuffer,
   OcrImportError,
   ocrWordsToPdfTextRuns,
 } from '@/domain/chords/ocrImporter';
@@ -8,9 +9,15 @@ import {
 const mockTerminate = vi.fn(async () => ({ jobId: 'j1', data: {} }));
 const mockRecognize = vi.fn();
 const mockCreateWorker = vi.fn();
+const mockPdfGetDocument = vi.fn();
 
 vi.mock('tesseract.js', () => ({
   createWorker: (...args: unknown[]) => mockCreateWorker(...args),
+}));
+
+vi.mock('pdfjs-dist', () => ({
+  GlobalWorkerOptions: { workerSrc: '' },
+  getDocument: (...args: unknown[]) => mockPdfGetDocument(...args),
 }));
 
 describe('Browser OCR ChordPro importer', () => {
@@ -72,6 +79,7 @@ describe('Browser OCR ChordPro importer', () => {
       const blob = new Blob([new Uint8Array([137, 80, 78, 71])], { type: 'image/png' });
       const result = await importSongFromOcrImageBlob(blob, { targetNotation: 'italian' });
 
+      expect(mockRecognize).toHaveBeenCalledWith(blob, {}, { text: true, blocks: true });
       expect(result.detectedChordLines).toBe(1);
       expect(result.chordpro).toContain('[La]Questo [Mi]canto');
       expect(mockTerminate).toHaveBeenCalledTimes(1);
@@ -88,6 +96,21 @@ describe('Browser OCR ChordPro importer', () => {
       const blob = new Blob([new Uint8Array([137, 80, 78, 71])], { type: 'image/png' });
       await expect(importSongFromOcrImageBlob(blob)).rejects.toMatchObject({
         code: 'EMPTY_OCR_TEXT',
+      } satisfies Partial<OcrImportError>);
+      expect(mockTerminate).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  vitestIt(
+    'maps PDF loading failures to OCR_FAILED and always terminates the Tesseract worker',
+    async () => {
+      mockPdfGetDocument.mockReturnValue({
+        promise: Promise.reject(new Error('InvalidPDFException')),
+      });
+
+      const pdfBuffer = new TextEncoder().encode('%PDF-1.7\n').buffer;
+      await expect(importSongFromOcrPdfArrayBuffer(pdfBuffer)).rejects.toMatchObject({
+        code: 'OCR_FAILED',
       } satisfies Partial<OcrImportError>);
       expect(mockTerminate).toHaveBeenCalledTimes(1);
     },

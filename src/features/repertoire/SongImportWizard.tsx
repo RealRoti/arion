@@ -31,7 +31,7 @@ interface SongImportWizardProps {
 }
 
 type PendingOcrSource =
-  | { readonly kind: 'pdf'; readonly buffer: ArrayBuffer }
+  | { readonly kind: 'pdf'; readonly file: File }
   | { readonly kind: 'image'; readonly file: File }
   | null;
 
@@ -88,8 +88,6 @@ export function SongImportWizard({ onApply }: SongImportWizardProps) {
     setPendingOcrSource(null);
     setOcrProgressLabel(null);
 
-    let lastPdfBuffer: ArrayBuffer | null = null;
-
     try {
       const lowerName = file.name.trim().toLowerCase();
 
@@ -125,7 +123,6 @@ export function SongImportWizard({ onApply }: SongImportWizardProps) {
       }
 
       if (lowerName.endsWith('.pdf')) {
-        lastPdfBuffer = buffer;
         const result = await importSongFromPdfArrayBuffer(buffer, { targetNotation });
         applyConversionResult(result);
         return;
@@ -151,16 +148,12 @@ export function SongImportWizard({ onApply }: SongImportWizardProps) {
       }
       if (err instanceof PdfImportError) {
         if (err.code === 'SCANNED_PDF_NO_TEXT') {
-          if (lastPdfBuffer) {
-            setPendingOcrSource({ kind: 'pdf', buffer: lastPdfBuffer });
-          }
+          setPendingOcrSource({ kind: 'pdf', file });
           setErrorMessage(it.songEditor.importScannedPdfError);
           return;
         }
         if (err.code === 'HYBRID_SCANNED_PDF') {
-          if (lastPdfBuffer) {
-            setPendingOcrSource({ kind: 'pdf', buffer: lastPdfBuffer });
-          }
+          setPendingOcrSource({ kind: 'pdf', file });
           setErrorMessage(it.songEditor.importHybridScannedPdfError);
           return;
         }
@@ -195,7 +188,7 @@ export function SongImportWizard({ onApply }: SongImportWizardProps) {
     try {
       const result =
         pendingOcrSource.kind === 'pdf'
-          ? await importSongFromOcrPdfArrayBuffer(pendingOcrSource.buffer, {
+          ? await importSongFromOcrPdfArrayBuffer(await pendingOcrSource.file.arrayBuffer(), {
               targetNotation,
               onProgress: ({ page, totalPages, progress }) => {
                 setOcrProgressLabel(it.songEditor.importOcrRunning(page, totalPages, progress));
@@ -209,6 +202,7 @@ export function SongImportWizard({ onApply }: SongImportWizardProps) {
             });
       applyConversionResult(result);
     } catch (err) {
+      console.error('[Arion OCR]', err);
       setOcrProgressLabel(null);
       if (err instanceof OcrImportError && err.code === 'EMPTY_OCR_TEXT') {
         setErrorMessage(it.songEditor.importOcrEmptyError);

@@ -94,7 +94,7 @@ function reconstructTextFromOcrResult(
       return lines.join('\n');
     }
   }
-  return page.text.trim();
+  return (page.text ?? '').trim();
 }
 
 async function readImageDimensions(blob: Blob): Promise<{ width?: number; height?: number }> {
@@ -118,6 +118,10 @@ export async function importSongFromOcrPdfArrayBuffer(
     maxPages?: number;
   },
 ): Promise<TextImportResult> {
+  if (buffer.byteLength === 0) {
+    throw new OcrImportError('OCR_FAILED', 'PDF buffer is empty or detached.');
+  }
+
   const tesseract = await import('tesseract.js');
   const pdfjs = await import('pdfjs-dist');
   pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
@@ -137,8 +141,9 @@ export async function importSongFromOcrPdfArrayBuffer(
     },
   });
 
-  const doc = await pdfjs.getDocument({ data: new Uint8Array(buffer) }).promise;
+  let doc: Awaited<ReturnType<typeof pdfjs.getDocument>['promise']> | null = null;
   try {
+    doc = await pdfjs.getDocument({ data: new Uint8Array(buffer).slice() }).promise;
     pagesToProcess = Math.max(1, Math.min(doc.numPages, options?.maxPages ?? 6));
     const pageTexts: string[] = [];
 
@@ -155,8 +160,11 @@ export async function importSongFromOcrPdfArrayBuffer(
         throw new OcrImportError('OCR_FAILED', 'Canvas 2D context is unavailable.');
       }
 
+      context.fillStyle = '#ffffff';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+
       await page.render({ canvas, canvasContext: context, viewport }).promise;
-      const result = await worker.recognize(canvas, {}, { blocks: true });
+      const result = await worker.recognize(canvas, {}, { text: true, blocks: true });
       const text = reconstructTextFromOcrResult(result.data, canvas.width, canvas.height);
       if (text.trim()) {
         pageTexts.push(text);
@@ -178,7 +186,9 @@ export async function importSongFromOcrPdfArrayBuffer(
       err instanceof Error ? err.message : 'OCR processing failed.',
     );
   } finally {
-    await doc.cleanup();
+    if (doc) {
+      await doc.cleanup();
+    }
     await worker.terminate();
   }
 }
@@ -204,7 +214,7 @@ export async function importSongFromOcrImageBlob(
 
   try {
     const dims = await readImageDimensions(blob);
-    const result = await worker.recognize(blob, {}, { blocks: true });
+    const result = await worker.recognize(blob, {}, { text: true, blocks: true });
     const combined = reconstructTextFromOcrResult(result.data, dims.width, dims.height).trim();
     if (!combined) {
       throw new OcrImportError('EMPTY_OCR_TEXT', 'No readable text extracted via OCR.');

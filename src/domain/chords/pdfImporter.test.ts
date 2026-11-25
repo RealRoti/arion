@@ -79,10 +79,13 @@ describe('PDF ChordPro importer', () => {
       ],
     });
 
-    const result = await importSongFromPdfArrayBuffer(makePdfBuffer(), {
+    const originalBuffer = makePdfBuffer();
+    const result = await importSongFromPdfArrayBuffer(originalBuffer, {
       targetNotation: 'italian',
     });
 
+    const getDocArg = mockGetDocument.mock.calls[0]?.[0] as { data?: Uint8Array } | undefined;
+    expect(getDocArg?.data?.buffer).not.toBe(originalBuffer);
     expect(result.detectedTitle).toBe('Canto dal PDF');
     expect(result.detectedChordLines).toBe(1);
     expect(result.chordpro).toContain('{start_of_verse: Strofa 1}');
