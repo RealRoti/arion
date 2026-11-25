@@ -131,7 +131,10 @@ export async function getSession(): Promise<Session | null> {
 
 export function onAuthStateChange(callback: (session: Session | null) => void): () => void {
   const supabase = getSupabaseClient();
-  const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+  const { data } = supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'INITIAL_SESSION') {
+      return;
+    }
     callback(session);
   });
   return () => {

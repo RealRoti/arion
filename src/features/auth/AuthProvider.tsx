@@ -82,7 +82,8 @@ export function AuthProvider({ children, valueOverride }: AuthProviderProps) {
         }
 
         setStatus('authenticated');
-      } catch {
+      } catch (error) {
+        console.error('[Arion Auth] Failed to load session context', error);
         setProfile(null);
         setInstanceSettings(null);
         setStatus('unauthenticated');
@@ -104,7 +105,8 @@ export function AuthProvider({ children, valueOverride }: AuthProviderProps) {
         if (!cancelled) {
           await loadSessionContext(initialSession);
         }
-      } catch {
+      } catch (error) {
+        console.error('[Arion Auth] Failed to initialize auth session', error);
         if (!cancelled) {
           setStatus('unauthenticated');
         }

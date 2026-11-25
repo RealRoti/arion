@@ -96,7 +96,7 @@ describe('PostgreSQL RLS & Security Policies (Milestone 1.1)', () => {
   });
 
   it('blocks anonymous access on protected tables', async () => {
-    const [songsRes, settingsRes, setlistsRes, calendarRes, liveRes, allowedRes] =
+    const [songsRes, settingsRes, setlistsRes, calendarRes, liveRes, allowedRes, profilesRes] =
       await Promise.all([
         anonClient.from('songs').select('id'),
         anonClient.from('instance_settings').select('id'),
@@ -104,6 +104,7 @@ describe('PostgreSQL RLS & Security Policies (Milestone 1.1)', () => {
         anonClient.from('calendar_events').select('id'),
         anonClient.from('live_sessions').select('id'),
         anonClient.from('allowed_emails').select('id'),
+        anonClient.from('profiles').select('id'),
       ]);
 
     expect(songsRes.data ?? []).toHaveLength(0);
@@ -112,6 +113,15 @@ describe('PostgreSQL RLS & Security Policies (Milestone 1.1)', () => {
     expect(calendarRes.data ?? []).toHaveLength(0);
     expect(liveRes.data ?? []).toHaveLength(0);
     expect(allowedRes.data ?? []).toHaveLength(0);
+    expect(profilesRes.data ?? []).toHaveLength(0);
+
+    expect(songsRes.error).not.toBeNull();
+    expect(settingsRes.error).not.toBeNull();
+    expect(setlistsRes.error).not.toBeNull();
+    expect(calendarRes.error).not.toBeNull();
+    expect(liveRes.error).not.toBeNull();
+    expect(allowedRes.error).not.toBeNull();
+    expect(profilesRes.error).not.toBeNull();
   });
 
   it('allows musician to read repertoire/enabled instruments and manage own preferences, while blocking privilege escalation and writes', async () => {
