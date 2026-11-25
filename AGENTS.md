@@ -7,8 +7,8 @@ Questo documento è la fonte di verità operativa per chiunque (sviluppatore uma
 ## 1. Identità del progetto
 
 - **Nome:** **Arion**
-- **Sottotitolo / Acronimo (italiano):** *Armonia e Ritmo In Ogni Nota*
-- **Acronimo tecnico (inglese):** *Automatic Real-time Instrument and Orchestra Notation*
+- **Sottotitolo / Acronimo (italiano):** _Armonia e Ritmo In Ogni Nota_
+- **Acronimo tecnico (inglese):** _Automatic Real-time Instrument and Orchestra Notation_
 - **Icona / Logo:** delfino stilizzato e moderno integrato con il mondo musicale (SVG proprietario del framework).
 - **Natura del progetto:** Web App / **PWA** (Progressive Web App) installabile su iPad/tablet, smartphone iOS/Android e desktop, progettata come **framework open-core white-label** per gestire repertorio, spartiti, scalette ed esecuzioni dal vivo di cori ed ensemble musicali.
 
@@ -19,6 +19,7 @@ Questo documento è la fonte di verità operativa per chiunque (sviluppatore uma
 Questo repository GitHub contiene **esclusivamente il framework generico e riutilizzabile**. Ogni singolo gruppo musicale che installa Arion lo personalizza a runtime tramite database e variabili d'ambiente locali.
 
 **Divieti inderogabili (zero eccezioni):**
+
 1. **Mai** inserire nel codice sorgente, nella documentazione, nei file di test, nei seed SQL o nei messaggi di commit nomi reali di cori, parrocchie, associazioni, località, indirizzi email personali o URL di istanze private.
 2. **Mai** committare spartiti reali coperti da copyright o materiali privati di un gruppo specifico: i brani e gli allegati di esempio per test e sviluppo devono essere esclusivamente brani fittizi di pubblico dominio o placeholder neutrali.
 3. **Mai** committare file di configurazione locale o segreti (`.env`, `.env.local`, `.env.*.local`, `supabase/.env`, `supabase/.env.local`).

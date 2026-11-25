@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+dist-ssr/
+dev-dist/
+*.local
+
+# Environment & secrets (never commit local instance configs)
+.env
+.env.*
+!.env.example
+supabase/.env
+supabase/.env.*
+supabase/.temp/
+
+# Testing & tooling caches
+coverage/
+playwright-report/
+test-results/
+.vite/
+
+# OS & logs
+.DS_Store
+*.log
+npm-debug.log*

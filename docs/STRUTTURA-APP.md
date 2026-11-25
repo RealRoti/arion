@@ -7,6 +7,7 @@ Questo documento descrive lo stack tecnologico, l'organizzazione del codice, lo 
 ## 1. Stack Tecnologico
 
 ### Frontend & PWA
+
 - **Framework:** React 19 + TypeScript (`strict: true`, `noUncheckedIndexedAccess: true`)
 - **Build tool:** Vite + `vite-plugin-pwa` (Workbox)
 - **Stile:** Tailwind CSS + CSS custom properties per i 3 temi (`stage_dark`, `oled_black`, `daylight`)
@@ -17,11 +18,13 @@ Questo documento descrive lo stack tecnologico, l'organizzazione del codice, lo 
 - **Storage offline:** `dexie` (wrapper tipizzato su IndexedDB)
 
 ### Backend (Fase 1 a 0 €/mese — Self-Host Ready)
+
 - **Piattaforma:** Supabase (Piano Free in partenza: PostgreSQL 15+, Auth Magic Link + OTP 6 cifre, Storage privato, Realtime Broadcast + Presence)
 - **SDK Client:** `@supabase/supabase-js` incapsulato dietro `src/services/`
 - **Ambiente locale:** Supabase CLI + Docker (Postgres, GoTrue Auth, PostgREST, Storage, Realtime, Mailpit/Inbucket per email locali)
 
 ### Qualità, Linting & Testing
+
 - **Lint & Format:** ESLint (flat config) + Prettier
 - **Unit & Integration Test:** Vitest + React Testing Library
 - **Security / RLS Test:** Vitest contro istanza Supabase locale in Docker (`tests/rls/`)
@@ -104,6 +107,7 @@ arion/
 Tutte le tabelle risiedono nello schema `public` e utilizzano `uuid` come chiavi primarie (`gen_random_uuid()`), `timestamptz` in UTC e vincoli referenziali espliciti.
 
 ### 3.1 Configurazione istanza e sicurezza utenti
+
 - **`instance_settings`** (singleton, `id = 1` con vincolo `CHECK (id = 1)`):
   - `id integer primary key default 1`
   - `group_name text not null default 'Il Mio Coro'`
@@ -134,6 +138,7 @@ Tutte le tabelle risiedono nello schema `public` e utilizzano `uuid` come chiavi
   - `created_at`, `updated_at`
 
 ### 3.2 Catalogo Strumenti e Preferenze Musicali
+
 - **`instruments`**:
   - `id uuid primary key`
   - `slug text unique not null`
@@ -155,11 +160,12 @@ Tutte le tabelle risiedono nello schema `public` e utilizzano `uuid` come chiavi
   - `capo_frets smallint not null default 0 check (capo_frets between 0 and 11)`
   - `preferred_view text` (`null | 'lyrics_only' | 'chords' | 'pdf'`)
   - `preferred_asset_id uuid`
-  - `personal_notes text` *(colonna già presente per Fase 2, UI non esposta in Fase 1)*
+  - `personal_notes text` _(colonna già presente per Fase 2, UI non esposta in Fase 1)_
   - `updated_at timestamptz not null default now()`
   - `primary key (user_id, song_id)`
 
 ### 3.3 Repertorio e Allegati Polimorfici
+
 - **`songs`**:
   - `id uuid primary key`
   - `title text not null`
@@ -189,6 +195,7 @@ Tutte le tabelle risiedono nello schema `public` e utilizzano `uuid` come chiavi
   - `created_at timestamptz not null default now()`
 
 ### 3.4 Scalette e Sessione Live
+
 - **`setlists`**:
   - `id uuid primary key`
   - `title text not null`
@@ -224,27 +231,33 @@ Tutte le tabelle risiedono nello schema `public` e utilizzano `uuid` come chiavi
 ## 4. Sicurezza Backend (RLS, Auth Whitelist e Storage)
 
 ### 4.1 Funzioni Helper SQL (`SECURITY DEFINER`)
+
 Per mantenere le policy RLS leggibili ed evitare ricorsioni su `profiles`:
+
 - `public.is_active_user() returns boolean`: verifica `auth.uid()` e controlla che esista un profilo con `is_active = true`.
 - `public.current_user_role() returns text`: restituisce il `role` del profilo attivo corrente (o `null` se disattivato).
 - `public.has_any_role(roles text[]) returns boolean`: vero se l'utente è attivo e il suo ruolo è nell'array.
 
 ### 4.2 Protezione Auth & Anti-Privilege Escalation
-1. **Signup solo su invito (`BEFORE INSERT` su `auth.users` o Auth Hook / trigger dedicato):** verifica che `lower(new.email)` esista in `allowed_emails` con `is_active = true`; in caso contrario rifiuta la creazione dell'account. *(Nota: configurare inoltre su Supabase Auth la disabilitazione di signup esterni non invitati o bloccarli via trigger DB prima ancora che venga creato l'utente).*
+
+1. **Signup solo su invito (`BEFORE INSERT` su `auth.users` o Auth Hook / trigger dedicato):** verifica che `lower(new.email)` esista in `allowed_emails` con `is_active = true`; in caso contrario rifiuta la creazione dell'account. _(Nota: configurare inoltre su Supabase Auth la disabilitazione di signup esterni non invitati o bloccarli via trigger DB prima ancora che venga creato l'utente)._
 2. **Provisioning automatico profilo (`AFTER INSERT` su `auth.users`):** crea la riga in `profiles` leggendo `role` e `display_name` da `allowed_emails`, e popola `user_instruments` con `default_instrument_ids`.
 3. **Blocco modifica campi privilegiati su `profiles`:** un trigger `BEFORE UPDATE` (o policy RLS con `WITH CHECK`) impedisce a chi non è `admin` di cambiare `role`, `is_active` o `email`.
 4. **Guardia ultimo Admin:** un trigger `BEFORE UPDATE OR DELETE` su `profiles` blocca l'operazione se riduce a zero gli `admin` attivi.
 
 ### 4.3 Storage Policies (Bucket Privati)
+
 - Bucket `song-assets` (**privato**, dimensione massima per file configurata, MIME consentiti: `application/pdf` in Fase 1):
   - `SELECT`: consentita solo a utenti autenticati attivi (`is_active_user()`).
   - `INSERT` / `UPDATE` / `DELETE`: consentita solo a `admin` e `conductor`.
 - Bucket `instance-branding` (**privato** o lettura autenticata per logo personalizzato):
-  - `SELECT`: utenti autenticati attivi (e lettura logo pubblico minimale se mostrato pre-login, oppure logo mostrato dopo login lasciando il logo delfino Arion nella schermata di login). *Scelta di privacy predefinita: prima del login viene mostrato solo Arion; nome gruppo e logo personalizzato dell'istanza vengono caricati solo dopo autenticazione (o configurati come visibili solo se l'Admin lo abilita).*
+  - `SELECT`: utenti autenticati attivi (e lettura logo pubblico minimale se mostrato pre-login, oppure logo mostrato dopo login lasciando il logo delfino Arion nella schermata di login). _Scelta di privacy predefinita: prima del login viene mostrato solo Arion; nome gruppo e logo personalizzato dell'istanza vengono caricati solo dopo autenticazione (o configurati come visibili solo se l'Admin lo abilita)._
   - `INSERT` / `UPDATE` / `DELETE`: solo `admin`.
 
 ### 4.4 Matrice Test RLS Automatici (`tests/rls/`)
+
 Ogni test avvia client Supabase autenticato con JWT reale per ciascuno dei 4 profili di test (`anon`, `musician`, `conductor`, `admin`) su Supabase locale:
+
 - `anon` non può leggere o scrivere alcuna tabella di repertorio, scalette, utenti o live.
 - `musician` può leggere brani/scalette/strumenti abilitati e aggiornare solo il proprio `profiles` (esclusi `role`/`is_active`), `user_instruments` e `user_song_preferences`; riceve errore `42501` se tenta di modificare `role`, creare brani, caricare PDF, modificare scalette o aggiornare `live_sessions`.
 - `conductor` può gestire `songs`, `song_assets`, `setlists`, `setlist_items`, `live_sessions` e storage `song-assets`; riceve errore se tenta di modificare `instance_settings`, `allowed_emails`, `instruments` o ruoli utente.
@@ -255,6 +268,7 @@ Ogni test avvia client Supabase autenticato con JWT reale per ciascuno dei 4 pro
 ## 5. Architettura Realtime Live & Cache Offline
 
 La sincronizzazione Live combina **stato persistito su Postgres (`live_sessions`)** con **Supabase Realtime Broadcast + Presence** sul canale `live:main`:
+
 - **Broadcast:** trasporta immediatamente i payload leggeri (`< 1 KB`) per cambio brano, cambio tonalità, sezione/pagina attiva, banner "Prossimo brano" e segnali lampo.
 - **Persistenza su `live_sessions`:** garantisce che chi entra a metà prova, ricarica l'app o rientra dopo un micro-calo di segnale trovi immediatamente lo stato esatto corrente.
 - **Presence:** traccia in tempo reale i dispositivi connessi, il nome, lo strumento attivo e lo stato (`synced` / `detached`) per il pannello del Maestro.
@@ -269,6 +283,7 @@ flowchart LR
 ```
 
 ### Schema Cache Offline (`src/services/offlineDb.ts` via Dexie)
+
 - `songs`: brani completi + `updatedAt` per invalidazione incrementale.
 - `setlists`: scalette e relativi `setlistItems`.
 - `assetsMeta` & `assetBlobs`: metadati e `Blob` binari dei PDF scaricati (con dimensione totale tracciata per mostrare all'utente quanto spazio occupa la cache offline e permetterne la pulizia).
@@ -279,18 +294,19 @@ flowchart LR
 
 Per rispondere all'uso reale su leggio (ambienti poco illuminati, chiese, sale prove, sole o luce diffusa), Arion adotta una proposta grafica pulita denominata **Deep Marine Stage**, con tre temi selezionabili:
 
-| Token | *Stage Dark* (Default Live) | *OLED Black* | *Daylight* (Giorno/Stampa) |
-|---|---|---|---|
-| Background primario | `#070B14` (blu notte profondo) | `#000000` (nero puro) | `#FAFAF9` (avorio caldo) |
-| Surface / Card | `#0F172A` | `#0A0E17` | `#FFFFFF` |
-| Bordi sottili | `#1E293B` | `#1E293B` | `#E2E8F0` |
-| Testo principale (Lyrics) | `#F1F5F9` | `#F8FAFC` | `#0F172A` |
-| Accordi (Chords) | `#FBBF24` (ambra calda leggibile) | `#FBBF24` | `#0369A1` (blu oceano) |
-| Accento primario (Delfino/Live) | `#38BDF8` (azzurro acqua) | `#38BDF8` | `#0284C7` |
-| Accento secondario (Sync/Ok) | `#2DD4BF` (turchese marino) | `#2DD4BF` | `#0D9488` |
-| Avviso / Segnale Maestro | `#FB7185` / `#F59E0B` | `#FB7185` / `#F59E0B` | `#E11D48` / `#D97706` |
+| Token                           | _Stage Dark_ (Default Live)       | _OLED Black_          | _Daylight_ (Giorno/Stampa) |
+| ------------------------------- | --------------------------------- | --------------------- | -------------------------- |
+| Background primario             | `#070B14` (blu notte profondo)    | `#000000` (nero puro) | `#FAFAF9` (avorio caldo)   |
+| Surface / Card                  | `#0F172A`                         | `#0A0E17`             | `#FFFFFF`                  |
+| Bordi sottili                   | `#1E293B`                         | `#1E293B`             | `#E2E8F0`                  |
+| Testo principale (Lyrics)       | `#F1F5F9`                         | `#F8FAFC`             | `#0F172A`                  |
+| Accordi (Chords)                | `#FBBF24` (ambra calda leggibile) | `#FBBF24`             | `#0369A1` (blu oceano)     |
+| Accento primario (Delfino/Live) | `#38BDF8` (azzurro acqua)         | `#38BDF8`             | `#0284C7`                  |
+| Accento secondario (Sync/Ok)    | `#2DD4BF` (turchese marino)       | `#2DD4BF`             | `#0D9488`                  |
+| Avviso / Segnale Maestro        | `#FB7185` / `#F59E0B`             | `#FB7185` / `#F59E0B` | `#E11D48` / `#D97706`      |
 
 ### Linee guida UI & Tipografia
+
 - **Logo Arion:** delfino stilizzato in curva fluida che richiama un'onda sonora/chiave musicale, disegnato in SVG vettoriale per scalare nitidamente da favicon `16px` a icona PWA `512px`.
 - **Tipografia leggio:** sans-serif ad alta leggibilità (es. `Inter` / system-ui) per testo e UI; peso `700` e spaziatura dedicata per gli accordi sopra sillaba in modo che non si confondano mai col cantato.
 - **Ergonomia touch:** barra di controllo leggio auto-nascondibile (tap al centro per mostrare/nascondere), pulsanti `>= 44x44px`, layout **1 colonna** su smartphone e **2 colonne opzionali** su iPad landscape.
@@ -300,17 +316,21 @@ Per rispondere all'uso reale su leggio (ambienti poco illuminati, chiese, sale p
 ## 7. Ambiente Locale, Sandbox Multi-Utente & Percorso Self-Hosting
 
 ### 7.1 Prerequisiti macchina di sviluppo (macOS)
+
 Sul tuo Mac risultano già installati **Git**, **Node.js v24** e **npm v11**.
 Prima della **Milestone 1.1** (quando introdurremo il database locale e i test RLS) serviranno:
+
 1. **Docker** (Docker Desktop, OrbStack o Colima) per eseguire lo stack Supabase locale.
 2. **Supabase CLI** (`brew install supabase/tap/supabase`).
 
 ### 7.2 Sandbox Multi-Utente in locale
+
 - `supabase start` avvia Postgres, Auth, Storage, Realtime e **Mailpit/Inbucket** locale (`http://localhost:54324`) per intercettare e leggere istantaneamente i Magic Link e i codici OTP a 6 cifre senza inviare email vere.
 - `supabase/seed.sql` popola esclusivamente account fittizi (`admin@arion.local`, `maestro@arion.local`, `musicista@arion.local`) e 2–3 brani dimostrativi di pubblico dominio.
 - Aprendo due profili browser diversi (es. finestra normale per il Maestro + finestra in incognito o Playwright per il Musicista) si può collaudare tutto il flusso Live in locale.
 
 ### 7.3 Percorso verso il Self-Hosting futuro
+
 - Poiché database, Auth, Realtime e Storage usano esclusivamente primitive standard Supabase + PostgreSQL RLS e il frontend passa da `src/services/`, spostare in futuro l'istanza da Supabase Cloud Free a un server proprio (VPS, mini-PC o NAS con **Supabase Self-Hosted via Docker Compose**) richiederà solo:
   1. esportare/applicare le stesse `supabase/migrations/`;
   2. copiare i file dei bucket;

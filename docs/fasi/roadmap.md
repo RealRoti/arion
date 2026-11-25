@@ -7,19 +7,22 @@ Questo documento traccia le evoluzioni pianificate dopo il completamento e l'uso
 ## Fase 2 — Studio Personale, Offline Avanzato & MIDI
 
 ### 2.1 Note personali e gestione avanzata cache offline
+
 - Esposizione della colonna già predisposta `user_song_preferences.personal_notes` per consentire a ciascun musicista/corista di salvare appunti privati su un brano (respirazione, dinamica, diteggiatura) invisibili agli altri.
 - Cruscotto spazio offline: riepilogo MB occupati in IndexedDB, pre-cache selettiva per tag o intero repertorio, rimozione selettiva dei PDF più vecchi.
 
 ### 2.2 Importazione e Studio MIDI nel browser
+
 - Caricamento di allegati `.mid` in `song_assets` (`asset_type = 'midi'`) tramite lo stesso modello polimorfico della Fase 1.
 - Player MIDI interamente client-side (`@tonejs/midi` + Web Audio API + SoundFont compatto) con:
   - **mixer per traccia/voce** (es. un Soprano alza la propria linea e attenua o mette in mute le altre);
   - **controllo velocità (tempo stretch)** senza alterare l'intonazione (es. 70%–100%) e loop A–B su una battuta/sezione per studiare a casa.
 
 ### 2.3 Sincronizzazione Live guidata da MIDI (opzionale)
+
 - Mapping in `song_assets.metadata.sync_markers` tra timestamp/battute MIDI e sezioni ChordPro o pagine PDF.
 - Avanzamento automatico sincronizzato durante l'esecuzione Live quando il Maestro avvia la traccia o il click di riferimento.
-- *(Nota tecnica iOS: su Safari iOS la Web MIDI API per collegare tastiere hardware via cavo ha forti limitazioni di piattaforma; tutta la riproduzione audio di file `.mid` e il clock di sincronizzazione Web Audio funzionano comunque regolarmente su iPad e iPhone).*
+- _(Nota tecnica iOS: su Safari iOS la Web MIDI API per collegare tastiere hardware via cavo ha forti limitazioni di piattaforma; tutta la riproduzione audio di file `.mid` e il clock di sincronizzazione Web Audio funzionano comunque regolarmente su iPad e iPhone)._
 
 ---
 
