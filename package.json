@@ -10,14 +10,15 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint src tests vite.config.ts vitest.rls.config.ts eslint.config.js",
-    "format": "prettier --write src tests docs AGENTS.md README.md index.html package.json eslint.config.js vite.config.ts vitest.rls.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json tsconfig.rls.json",
-    "format:check": "prettier --check src tests docs AGENTS.md README.md index.html package.json eslint.config.js vite.config.ts vitest.rls.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json tsconfig.rls.json",
+    "format": "prettier --write src tests docs AGENTS.md README.md index.html package.json vercel.json eslint.config.js vite.config.ts vitest.rls.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json tsconfig.rls.json",
+    "format:check": "prettier --check src tests docs AGENTS.md README.md index.html package.json vercel.json eslint.config.js vite.config.ts vitest.rls.config.ts tsconfig.json tsconfig.app.json tsconfig.node.json tsconfig.rls.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:rls": "vitest run --config vitest.rls.config.ts",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
-    "db:reset": "supabase db reset"
+    "db:reset": "supabase db reset",
+    "db:push:remote": "supabase db push --remote"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.2",
