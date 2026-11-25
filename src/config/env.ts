@@ -6,7 +6,7 @@ export interface AppEnv {
   appVersion: string;
 }
 
-export const APP_VERSION = '0.1.8';
+export const APP_VERSION = '0.1.9';
 
 function normalizeEnvValue(value: unknown): string | null {
   if (typeof value !== 'string') {

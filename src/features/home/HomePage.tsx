@@ -6,10 +6,12 @@ import { useTheme } from '@/components/useTheme';
 import { getAppEnv } from '@/config/env';
 import { formatKey, parseKey } from '@/domain/chords/transposer';
 import { toLocalIsoDate, type CalendarEvent } from '@/domain/models/calendar';
+import type { LiveSessionState } from '@/domain/models/live';
 import type { Song } from '@/domain/models/songs';
 import { useAuth } from '@/features/auth/useAuth';
 import { it } from '@/i18n/it';
 import { getNextUpcomingEvent } from '@/services/calendarService';
+import { fetchLiveSession } from '@/services/liveService';
 import { listRecentSongs } from '@/services/songsService';
 
 function formatHomeEventMeta(event: CalendarEvent): string {
@@ -27,6 +29,7 @@ export function HomePage() {
   const isSupabaseConfigured = getAppEnv().isSupabaseConfigured;
   const [recentSongs, setRecentSongs] = useState<Song[]>([]);
   const [nextEvent, setNextEvent] = useState<CalendarEvent | null>(null);
+  const [liveSession, setLiveSession] = useState<LiveSessionState | null>(null);
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -36,13 +39,15 @@ export function HomePage() {
     const todayIso = toLocalIsoDate(new Date());
     const loadHomeData = async () => {
       try {
-        const [loadedSongs, loadedEvent] = await Promise.all([
+        const [loadedSongs, loadedEvent, loadedLive] = await Promise.all([
           listRecentSongs(5).catch(() => [] as Song[]),
           getNextUpcomingEvent(todayIso).catch(() => null),
+          fetchLiveSession().catch(() => null),
         ]);
         if (!cancelled) {
           setRecentSongs(loadedSongs);
           setNextEvent(loadedEvent);
+          setLiveSession(loadedLive);
         }
       } catch {
         // Non-blocking home widgets
@@ -101,26 +106,46 @@ export function HomePage() {
       {/* Live Status Card */}
       <section
         aria-labelledby="home-live-heading"
-        className="rounded-md border border-[var(--arion-border)] bg-[var(--arion-surface)] p-4 shadow-2xs"
+        className={`rounded-md border p-4 shadow-2xs ${
+          liveSession?.isActive
+            ? 'border-[var(--arion-live)] bg-[var(--arion-surface)]'
+            : 'border-[var(--arion-border)] bg-[var(--arion-surface)]'
+        }`}
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0 space-y-1">
             <h2
               id="home-live-heading"
-              className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[var(--arion-accent)]"
+              className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider ${
+                liveSession?.isActive ? 'text-[var(--arion-live)]' : 'text-[var(--arion-accent)]'
+              }`}
             >
               <Radio className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-              <span>{it.home.liveSectionTitle}</span>
+              <span>
+                {liveSession?.isActive ? it.home.liveActiveBadge : it.home.liveSectionTitle}
+              </span>
             </h2>
-            <p className="text-base font-bold text-[var(--arion-text)]">{it.home.liveIdleTitle}</p>
-            <p className="text-sm text-[var(--arion-text-muted)]">{it.home.liveIdleSubtitle}</p>
+            <p className="text-base font-bold text-[var(--arion-text)]">
+              {liveSession?.isActive ? it.home.liveActiveTitle : it.home.liveIdleTitle}
+            </p>
+            <p className="text-sm text-[var(--arion-text-muted)]">
+              {liveSession?.isActive
+                ? liveSession.conductorName
+                  ? it.home.liveActiveSubtitleBy(liveSession.conductorName)
+                  : it.home.liveActiveSubtitle
+                : it.home.liveIdleSubtitle}
+            </p>
           </div>
           <Link
             to="/live"
-            className="touch-target inline-flex items-center justify-center gap-2 rounded-md bg-[var(--arion-primary)] px-4 py-2 text-sm font-bold text-[var(--arion-primary-contrast)] transition-colors hover:bg-[var(--arion-primary-hover)]"
+            className={`touch-target inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-bold transition-colors ${
+              liveSession?.isActive
+                ? 'bg-[var(--arion-live)] text-white hover:opacity-90'
+                : 'bg-[var(--arion-primary)] text-[var(--arion-primary-contrast)] hover:bg-[var(--arion-primary-hover)]'
+            }`}
           >
             <Radio className="h-4 w-4" aria-hidden="true" />
-            <span>{it.home.liveOpenButton}</span>
+            <span>{liveSession?.isActive ? it.home.liveJoinButton : it.home.liveOpenButton}</span>
           </Link>
         </div>
       </section>

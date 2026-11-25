@@ -70,7 +70,7 @@ arion/
 │   │   │   ├── pdfImporter.ts      # Estrazione testo PDF (1/2 colonne) e rilevamento scansioni/ibridi
 │   │   │   ├── musicXmlImporter.ts # Estrazione testo/accordi/metadati da MusicXML (.musicxml/.mxl)
 │   │   │   └── ocrImporter.ts      # Estrazione OCR opzionale browser-side (Tesseract.js)
-│   │   └── models/                 # Tipi di dominio (UserProfile, Instrument, Song, Setlist, CalendarEvent, LiveState)
+│   │   └── models/                 # Tipi di dominio (UserProfile, Instrument, Song, Setlist, CalendarEvent, LiveSessionState)
 │   ├── services/                   # Adapter infrastrutturali (disaccoppiamento backend)
 │   │   ├── supabaseClient.ts
 │   │   ├── authService.ts
@@ -98,7 +98,7 @@ arion/
 │       ├── repertoire/             # Lista brani, ricerca/tag, leggio, editor ChordPro, wizard import .docx, PDF
 │       ├── reader/                 # Leggio unificato (ChordPro renderer, PDF.js canvas, Night Score, Wake Lock, pedale)
 │       ├── setlists/               # Gestione scalette, riordino, override tonalità, lettura in sequenza
-│       ├── live/                   # Console Maestro, Vista Musicista/Corista, Presenza, Segnali lampo, Banner prossimo
+│       ├── live/                   # LivePage, LiveConductorControls, LiveNextSongBanner, LiveFlashToast, LivePresenceDrawer
 │       ├── calendar/               # Calendario musicale: prove, esibizioni/concerti, servizi con collegamento a scalette
 │       ├── more/                   # Menu Altro, Preferenze utente, Guida, Assistenza, Privacy, Info app
 │       └── offline/                # Banner installazione iOS/Android, gestione cache "Prepara offline"

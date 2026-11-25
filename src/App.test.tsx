@@ -40,6 +40,32 @@ vi.mock('@/services/setlistsService', () => ({
   getSetlistById: vi.fn(async () => null),
 }));
 
+vi.mock('@/services/liveService', () => ({
+  fetchLiveSession: vi.fn(async () => ({
+    isActive: false,
+    conductorId: null,
+    conductorName: null,
+    setlistId: null,
+    activeSetlistItemId: null,
+    activeSongId: null,
+    activeKey: null,
+    activeSectionIndex: null,
+    activePage: null,
+    nextSongId: null,
+    nextSongKey: null,
+    flashSignal: null,
+    updatedAt: '',
+  })),
+  updateLiveSession: vi.fn(),
+  endLiveSession: vi.fn(),
+  subscribeToLiveChannel: vi.fn(() => ({
+    sendStateSync: vi.fn(async () => undefined),
+    sendFlashSignal: vi.fn(async () => undefined),
+    updatePresence: vi.fn(async () => undefined),
+    unsubscribe: vi.fn(),
+  })),
+}));
+
 vi.mock('@/services/calendarService', () => ({
   listCalendarEvents: vi.fn(async () => [
     {

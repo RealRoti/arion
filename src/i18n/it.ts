@@ -97,6 +97,12 @@ export const it = {
     liveIdleSubtitle:
       'Quando il Maestro avvia il Live, i dispositivi si sincronizzano automaticamente.',
     liveOpenButton: 'Apri console Live',
+    liveActiveBadge: 'Live in corso',
+    liveActiveTitle: 'Sessione dal vivo attiva adesso',
+    liveActiveSubtitle: 'Unisciti al leggio sincronizzato in tempo reale.',
+    liveActiveSubtitleBy: (name: string) =>
+      `Diretta da ${name} · Tocca per sincronizzare il leggio.`,
+    liveJoinButton: 'Entra nel Live',
     quickAccessTitle: 'Accesso rapido',
     quickRepertoireTitle: 'Repertorio',
     quickRepertoireDesc: 'Cerca brani, testi con accordi e allegati PDF',
@@ -286,14 +292,81 @@ export const it = {
   live: {
     title: 'Modalità Live',
     statusBadgeIdle: 'In attesa',
+    statusBadgeActive: 'Live',
+    connectionStates: {
+      connecting: 'Connessione...',
+      connected: 'Realtime connesso',
+      reconnecting: 'Riconnessione...',
+      disconnected: 'Non connesso',
+    },
     idleHeading: 'Pronto per la sincronizzazione dal vivo',
     idleDescription:
-      'In modalità Live il Maestro seleziona il brano attivo, imposta la tonalità e invia i cambi sezione o il banner del brano successivo a tutti i leggii connessi.',
+      'Quando il Maestro avvia la sessione Live, il tuo leggio si apre automaticamente sul brano attivo nella vista e tonalità del tuo strumento.',
     activeInstrumentLabel: 'Strumento attivo',
-    syncHint:
-      'La sincronizzazione Realtime (Broadcast e Presence) sarà collegata nella Milestone 1.7.',
     goToRepertoire: 'Sfoglia Repertorio',
     goToSetlists: 'Apri Scalette',
+    conductorLauncherBadge: 'Console Maestro',
+    conductorLauncherTitle: 'Avvia sessione dal vivo',
+    conductorLauncherSubtitle:
+      'Scegli una scaletta preparata oppure un brano singolo per sincronizzare tutti i leggii connessi.',
+    launchFromSetlistTab: 'Avvia da Scaletta',
+    launchFromSongTab: 'Avvia da Brano singolo',
+    noSetlistsReady:
+      'Nessuna scaletta con brani disponibile. Crea prima una scaletta o avvia da un brano singolo.',
+    noSongsReady: 'Nessun brano presente in repertorio.',
+    selectSetlistLabel: 'Seleziona scaletta',
+    startLiveButton: 'Avvia sessione Live',
+    conductorConsoleTitle: 'Controllo sincronizzazione',
+    endLiveButton: 'Termina Live',
+    confirmEndButton: 'Conferma chiusura',
+    offSetlistBadge: 'Brano fuori scaletta',
+    returnToSetlistButton: 'Torna alla scaletta',
+    announceNextShort: (songTitle: string) =>
+      songTitle ? `Annuncia prossimo: ${songTitle}` : 'Annuncia prossimo',
+    liveKeyLabel: 'Tonalità Live',
+    resetKeyLabel: 'Ripristina tonalità',
+    offSetlistButton: 'Brano fuori scaletta',
+    offSetlistSearchPlaceholder: 'Cerca un brano al volo da lanciare...',
+    launchNowButton: 'Lancia subito',
+    flashSignalsButton: 'Segnale lampo',
+    flashSignalsPanelTitle: 'Invia segnale lampo ai leggii',
+    signalPresets: [
+      'Ripetiamo il Ritornello',
+      'Senza intro',
+      'Rallentando',
+      'Attenzione alla tonalità',
+      'Finale a cappella',
+    ] as readonly string[],
+    customSignalPlaceholder: 'Oppure scrivi un avviso breve...',
+    sendSignalButton: 'Invia avviso',
+    flashSignalHeading: 'Segnale del Maestro',
+    dismissSignalLabel: 'Chiudi avviso',
+    nextSongBannerHeading: 'Prossimo brano',
+    activateNextNowButton: 'Passa ora',
+    clearNextButton: 'Rimuovi annuncio prossimo brano',
+    nextReadingHint: (capo: number, readingKey: string) =>
+      capo > 0 ? `Capo ${capo} · leggi in ${readingKey}` : `leggi in ${readingKey}`,
+    presenceSummary: (total: number, synced: number, detached: number) =>
+      `${total} connessi · ${synced} sync / ${detached} sganciati`,
+    presenceEmpty: 'Nessun altro dispositivo rilevato al momento.',
+    presenceSynced: 'Sincronizzato',
+    presenceDetached: 'Sganciato',
+    takeoverBannerText: (conductorName: string | null) =>
+      conductorName
+        ? `Sessione attualmente condotta da ${conductorName}.`
+        : 'Sessione Live già attiva su un altro dispositivo.',
+    takeoverButton: 'Prendi il controllo',
+    confirmTakeoverButton: 'Conferma subentro',
+    detachedBannerTitle: 'Sganciato dal Live',
+    detachedBannerSubtitle: 'Stai consultando autonomamente un altro punto o brano.',
+    returnToLiveButton: 'Torna al Live',
+    browseOtherSongButton: 'Consulta altro brano',
+    browseOtherSongPlaceholder: 'Cerca brano da consultare localmente...',
+    readingAsLabel: (instrumentName: string) => instrumentName,
+    conductorNameLabel: (name: string) => `Maestro: ${name}`,
+    sectionSyncHint:
+      'Tocca il badge di una sezione (es. Strofa, Ritornello) per sincronizzare tutti lì.',
+    errorUpdatingSession: 'Errore nella sincronizzazione della sessione Live.',
   },
   calendar: {
     title: 'Calendario',
@@ -392,6 +465,7 @@ export const it = {
     emptySetlistItems: 'Nessun brano ancora inserito in questa scaletta.',
     songsCount: (count: number) => (count === 1 ? '1 brano' : `${count} brani`),
     openFirstSong: 'Apri in sequenza',
+    startLiveButton: 'Avvia Live',
     sequenceHeading: 'Ordine dei brani',
     moveUpLabel: 'Sposta su',
     moveDownLabel: 'Sposta giù',
@@ -640,7 +714,7 @@ export const it = {
     stages: [
       {
         phase: 'Fase 1 - MVP Prove, Repertorio e Live v1',
-        status: 'In corso (Milestone 1.6)',
+        status: 'In corso (Milestone 1.7)',
         details: [
           'Shell PWA a 5 tab, temi Carta / Palco Notturno / Nero OLED e accessibilità da leggio.',
           'Database PostgreSQL con RLS, Auth invite-only OTP, catalogo strumenti dinamico, motore ChordPro ITA/ENG, PDF.js, Scalette, Calendario e Live Realtime.',
@@ -665,6 +739,16 @@ export const it = {
     changelogTitle: 'Changelog',
     changelogSubtitle: 'Cronologia delle versioni e milestone rilasciate',
     changelogReleases: [
+      {
+        version: '0.1.9',
+        title: 'Versione 0.1.9 - Modalità Live v1 Realtime, Presenza e Segnali lampo',
+        items: [
+          'Console Live del Maestro: avvio da scaletta o brano singolo, cambio brano, lancio fuori scaletta con ritorno alla scaletta, trasposizione Live e subentro ("Prendi il controllo").',
+          'Sincronizzazione sezione ChordPro e pagina PDF in tempo reale tramite Supabase Realtime Broadcast + stato persistito su live_sessions.',
+          'Banner "Prossimo brano" con tonalità prevista e suggerimento capotasto personale, pannello Segnali lampo e indicatore Presenza live.',
+          'Sgancio autonomo dei musicisti con pulsante persistente "Torna al Live".',
+        ],
+      },
       {
         version: '0.1.8',
         title: 'Versione 0.1.8 - Fix stabilità OCR su PDF scansionati e ibridi',

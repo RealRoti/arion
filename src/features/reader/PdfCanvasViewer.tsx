@@ -15,6 +15,8 @@ interface PdfCanvasViewerProps {
   ) => void;
   readonly onBoundaryPrev?: () => void;
   readonly onBoundaryNext?: () => void;
+  readonly controlledPage?: number | null;
+  readonly onPageChange?: (page: number, totalPages: number) => void;
 }
 
 export function PdfCanvasViewer({
@@ -24,6 +26,8 @@ export function PdfCanvasViewer({
   onRegisterPedalHandlers,
   onBoundaryPrev,
   onBoundaryNext,
+  controlledPage = null,
+  onPageChange,
 }: PdfCanvasViewerProps) {
   const pdfAssets = assets.filter((asset) => asset.assetType === 'pdf');
   const activeAsset =
@@ -35,19 +39,46 @@ export function PdfCanvasViewer({
 
   const [loadedDocKey, setLoadedDocKey] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(0);
-  const [pageNumber, setPageNumber] = useState(1);
+  const [pageNumber, setPageNumber] = useState(
+    controlledPage && controlledPage >= 1 ? Math.floor(controlledPage) : 1,
+  );
   const [zoom, setZoom] = useState(1);
   const [nightScore, setNightScore] = useState(false);
   const [loading, setLoading] = useState(Boolean(activeAsset));
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const [prevControlledPage, setPrevControlledPage] = useState<number | null>(controlledPage);
+  if (controlledPage !== prevControlledPage) {
+    setPrevControlledPage(controlledPage);
+    if (
+      typeof controlledPage === 'number' &&
+      Number.isFinite(controlledPage) &&
+      controlledPage >= 1
+    ) {
+      const target = Math.floor(controlledPage);
+      setPageNumber(totalPages > 0 ? Math.min(totalPages, target) : target);
+    }
+  }
+
+  const initialControlledPageRef = useRef<number | null>(controlledPage);
+  useEffect(() => {
+    initialControlledPageRef.current = controlledPage;
+  }, [controlledPage]);
+
   const goPrev = useCallback(() => {
-    setPageNumber((prev) => Math.max(1, prev - 1));
-  }, []);
+    const nextPage = Math.max(1, pageNumber - 1);
+    if (nextPage === pageNumber) return;
+    setPageNumber(nextPage);
+    onPageChange?.(nextPage, totalPages);
+  }, [onPageChange, pageNumber, totalPages]);
 
   const goNext = useCallback(() => {
-    setPageNumber((prev) => (totalPages > 0 ? Math.min(totalPages, prev + 1) : prev));
-  }, [totalPages]);
+    if (totalPages <= 0) return;
+    const nextPage = Math.min(totalPages, pageNumber + 1);
+    if (nextPage === pageNumber) return;
+    setPageNumber(nextPage);
+    onPageChange?.(nextPage, totalPages);
+  }, [onPageChange, pageNumber, totalPages]);
 
   const handlePedalPrev = useCallback(() => {
     if (pageNumber <= 1 && onBoundaryPrev) {
@@ -103,7 +134,12 @@ export function PdfCanvasViewer({
         }
         pdfDocRef.current = doc;
         setTotalPages(doc.numPages);
-        setPageNumber(1);
+        const targetInitial = initialControlledPageRef.current;
+        setPageNumber(
+          targetInitial && targetInitial >= 1
+            ? Math.min(doc.numPages, Math.floor(targetInitial))
+            : 1,
+        );
         setLoadedDocKey(activeAsset.id);
         setErrorMessage(null);
       } catch {

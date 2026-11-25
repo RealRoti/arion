@@ -6,6 +6,7 @@ import {
   GripVertical,
   Play,
   Plus,
+  Radio,
   Save,
   Trash2,
 } from 'lucide-react';
@@ -333,13 +334,25 @@ export function SetlistDetailPage() {
         </Link>
 
         {firstItem ? (
-          <Link
-            to={`/repertorio/${firstItem.songId}?setlist=${setlist.id}&item=${firstItem.id}`}
-            className="touch-target inline-flex items-center gap-2 rounded-md bg-[var(--arion-primary)] px-4 py-2 text-xs font-bold text-[var(--arion-primary-contrast)] hover:bg-[var(--arion-primary-hover)]"
-          >
-            <Play className="h-4 w-4 text-[var(--arion-accent)]" aria-hidden="true" />
-            <span>{it.setlists.openFirstSong}</span>
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            {can('live:host') ? (
+              <Link
+                to={`/live?startSetlist=${setlist.id}`}
+                className="touch-target inline-flex items-center gap-2 rounded-md bg-[var(--arion-live)] px-3.5 py-2 text-xs font-bold text-white hover:opacity-90"
+              >
+                <Radio className="h-4 w-4" aria-hidden="true" />
+                <span>{it.setlists.startLiveButton}</span>
+              </Link>
+            ) : null}
+
+            <Link
+              to={`/repertorio/${firstItem.songId}?setlist=${setlist.id}&item=${firstItem.id}`}
+              className="touch-target inline-flex items-center gap-2 rounded-md bg-[var(--arion-primary)] px-4 py-2 text-xs font-bold text-[var(--arion-primary-contrast)] hover:bg-[var(--arion-primary-hover)]"
+            >
+              <Play className="h-4 w-4 text-[var(--arion-accent)]" aria-hidden="true" />
+              <span>{it.setlists.openFirstSong}</span>
+            </Link>
+          </div>
         ) : null}
       </div>
 
