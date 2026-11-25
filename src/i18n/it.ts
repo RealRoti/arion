@@ -410,7 +410,7 @@ export const it = {
     stages: [
       {
         phase: 'Fase 1 — MVP Prove, Repertorio e Live v1',
-        status: 'In corso (Milestone 1.3)',
+        status: 'In corso (Milestone 1.4)',
         details: [
           'Shell PWA a 5 tab, temi Carta / Palco Notturno / Nero OLED e accessibilità da leggio.',
           'Database PostgreSQL con RLS, Auth invite-only OTP, catalogo strumenti dinamico, motore ChordPro ITA/ENG, PDF.js, Scalette, Calendario e Live Realtime.',
@@ -479,6 +479,12 @@ export const it = {
         license: 'ISC License',
         copyright: 'Lucide Contributors',
         purpose: 'Icone vettoriali dell’interfaccia',
+      },
+      {
+        name: 'Mammoth.js',
+        license: 'BSD-2-Clause License',
+        copyright: 'Michael Williamson',
+        purpose: 'Estrazione client-side del testo da documenti .docx',
       },
     ] satisfies readonly OpenSourceLicense[],
   },
