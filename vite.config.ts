@@ -9,7 +9,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'prompt',
+      registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icons/arion-mark.svg', 'icons/apple-touch-icon.png'],
       manifest: {
         name: 'Arion',
