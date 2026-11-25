@@ -18,6 +18,7 @@ export interface InstanceSettings {
   readonly id: number;
   readonly groupName: string;
   readonly groupSubtitle: string | null;
+  readonly supportEmail: string | null;
   readonly logoPath: string | null;
   readonly logoSignedUrl: string | null;
   readonly defaultNotation: NotationSystem;

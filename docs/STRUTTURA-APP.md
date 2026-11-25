@@ -13,8 +13,8 @@ Questo documento descrive lo stack tecnologico, l'organizzazione del codice, lo 
 - **Stile:** Tailwind CSS + CSS custom properties per i 3 temi (`daylight`, `stage_dark`, `oled_black`)
 - **Routing:** React Router
 - **Icone:** `lucide-react` + componente SVG proprietario `ArionLogo` (delfino stilizzato)
-- **Rendering PDF:** `pdfjs-dist` (rendering su `<canvas>` senza `<iframe>` nativi)
-- **Import `.docx`:** `mammoth` (conversione browser-side senza costi server)
+- **Rendering PDF:** `pdfjs-dist` (rendering su `<canvas>` senza `<iframe>` nativi ed estrazione testo/2 colonne)
+- **Import `.docx`, MusicXML e OCR:** `mammoth` (`.docx`), `jszip` + `DOMParser` (`.musicxml` / `.mxl`) e `tesseract.js` opzionale per PDF scansionati/immagini
 - **Storage offline:** `dexie` (wrapper tipizzato su IndexedDB)
 
 ### Backend (Fase 1 a 0 €/mese — Self-Host Ready)
@@ -66,8 +66,11 @@ arion/
 │   │   │   ├── parser.ts           # Normalizzazione accordi ITA/ENG e formati misti
 │   │   │   ├── transposer.ts       # Circolo quinte, enarmonia, strumento traspositore, capotasto
 │   │   │   ├── chordpro.ts         # Parser strutturale ChordPro (sezioni, righe, solo testo)
-│   │   │   └── importer.ts         # Euristica "accordi sopra -> inline" + pulizia testo
-│   │   └── models/                 # Tipi di dominio (UserProfile, Instrument, Song, Setlist, LiveState)
+│   │   │   ├── importer.ts         # Euristica "accordi sopra -> inline" + estrazione .docx
+│   │   │   ├── pdfImporter.ts      # Estrazione testo PDF (1/2 colonne) e rilevamento scansioni/ibridi
+│   │   │   ├── musicXmlImporter.ts # Estrazione testo/accordi/metadati da MusicXML (.musicxml/.mxl)
+│   │   │   └── ocrImporter.ts      # Estrazione OCR opzionale browser-side (Tesseract.js)
+│   │   └── models/                 # Tipi di dominio (UserProfile, Instrument, Song, Setlist, CalendarEvent, LiveState)
 │   ├── services/                   # Adapter infrastrutturali (disaccoppiamento backend)
 │   │   ├── supabaseClient.ts
 │   │   ├── authService.ts
@@ -77,6 +80,7 @@ arion/
 │   │   ├── songsService.ts
 │   │   ├── storageService.ts       # Astrazione upload/download/signed-URL (pronta per backend alternativi)
 │   │   ├── setlistsService.ts
+│   │   ├── calendarService.ts
 │   │   ├── liveService.ts          # Persistenza live_sessions + canali Broadcast/Presence
 │   │   └── offlineDb.ts            # Schema Dexie IndexedDB per cache brani, scalette e PDF
 │   ├── components/                 # Componenti UI condivisi e design system
@@ -116,6 +120,7 @@ Tutte le tabelle risiedono nello schema `public` e utilizzano `uuid` come chiavi
   - `id integer primary key default 1`
   - `group_name text not null default 'Il Mio Coro'`
   - `group_subtitle text`
+  - `support_email text` (email di supporto tecnico configurabile dall'Admin)
   - `logo_path text` (percorso nello bucket privato `instance-branding`)
   - `default_notation text not null default 'italian'` (`'italian' | 'english'`)
   - `default_theme text not null default 'daylight'` (`'daylight' | 'stage_dark' | 'oled_black'`)
@@ -214,7 +219,7 @@ Tutte le tabelle risiedono nello schema `public` e utilizzano `uuid` come chiavi
   - `position integer not null`
   - `override_key text`
   - `notes text`
-  - `unique (setlist_id, position)` deferrable per riordino atomico
+  - `unique (setlist_id, position)` deferrable per riordino atomico tramite RPC `reorder_setlist_items(p_setlist_id, p_item_ids)`
 - **`calendar_events`** (impegni del coro: prove, esibizioni/concerti, servizi):
   - `id uuid primary key`
   - `title text not null`

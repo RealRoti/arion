@@ -5,3 +5,4 @@ export * from '@/domain/chords/chordpro';
 export * from '@/domain/chords/importer';
 export * from '@/domain/chords/pdfImporter';
 export * from '@/domain/chords/musicXmlImporter';
+export * from '@/domain/chords/ocrImporter';

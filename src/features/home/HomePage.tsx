@@ -5,33 +5,50 @@ import { PageHeader } from '@/components/PageHeader';
 import { useTheme } from '@/components/useTheme';
 import { getAppEnv } from '@/config/env';
 import { formatKey, parseKey } from '@/domain/chords/transposer';
+import { toLocalIsoDate, type CalendarEvent } from '@/domain/models/calendar';
 import type { Song } from '@/domain/models/songs';
 import { useAuth } from '@/features/auth/useAuth';
 import { it } from '@/i18n/it';
+import { getNextUpcomingEvent } from '@/services/calendarService';
 import { listRecentSongs } from '@/services/songsService';
+
+function formatHomeEventMeta(event: CalendarEvent): string {
+  const [, mStr, dStr] = event.eventDate.split('-');
+  const monthName = mStr ? (it.calendar.months[Number(mStr) - 1] ?? mStr) : '';
+  const dateLabel = dStr && monthName ? `${Number(dStr)} ${monthName}` : event.eventDate;
+  const parts = [dateLabel, event.startTime];
+  if (event.location) parts.push(event.location);
+  return parts.join(' · ');
+}
 
 export function HomePage() {
   const { profile } = useAuth();
   const { notation } = useTheme();
   const isSupabaseConfigured = getAppEnv().isSupabaseConfigured;
   const [recentSongs, setRecentSongs] = useState<Song[]>([]);
+  const [nextEvent, setNextEvent] = useState<CalendarEvent | null>(null);
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
       return;
     }
     let cancelled = false;
-    const loadRecent = async () => {
+    const todayIso = toLocalIsoDate(new Date());
+    const loadHomeData = async () => {
       try {
-        const loaded = await listRecentSongs(5);
+        const [loadedSongs, loadedEvent] = await Promise.all([
+          listRecentSongs(5).catch(() => [] as Song[]),
+          getNextUpcomingEvent(todayIso).catch(() => null),
+        ]);
         if (!cancelled) {
-          setRecentSongs(loaded);
+          setRecentSongs(loadedSongs);
+          setNextEvent(loadedEvent);
         }
       } catch {
-        // Non-blocking recent songs list
+        // Non-blocking home widgets
       }
     };
-    void loadRecent();
+    void loadHomeData();
     return () => {
       cancelled = true;
     };
@@ -60,10 +77,20 @@ export function HomePage() {
             <Calendar className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             <span>{it.home.nextEventKicker}</span>
           </div>
-          <p className="truncate text-sm font-bold text-[var(--arion-text)] sm:text-base">
-            {it.home.nextEventSampleTitle}
-          </p>
-          <p className="text-xs text-[var(--arion-text-muted)]">{it.home.nextEventSampleWhen}</p>
+          {nextEvent ? (
+            <>
+              <p className="truncate text-sm font-bold text-[var(--arion-text)] sm:text-base">
+                {nextEvent.title}
+              </p>
+              <p className="text-xs text-[var(--arion-text-muted)]">
+                {formatHomeEventMeta(nextEvent)}
+              </p>
+            </>
+          ) : (
+            <p className="text-sm font-semibold text-[var(--arion-text-muted)]">
+              {it.home.nextEventEmpty}
+            </p>
+          )}
         </div>
         <ChevronRight
           className="h-5 w-5 shrink-0 text-[var(--arion-text-muted)]"

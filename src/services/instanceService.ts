@@ -27,11 +27,15 @@ interface InstanceSettingsRow {
   id: number;
   group_name: string;
   group_subtitle: string | null;
+  support_email: string | null;
   logo_path: string | null;
   default_notation: string;
   default_theme: string;
   updated_at: string;
 }
+
+const INSTANCE_SETTINGS_COLUMNS =
+  'id, group_name, group_subtitle, support_email, logo_path, default_notation, default_theme, updated_at';
 
 async function resolveSignedLogoUrl(logoPath: string | null): Promise<string | null> {
   if (!logoPath) {
@@ -54,6 +58,7 @@ async function mapSettingsRow(row: InstanceSettingsRow): Promise<InstanceSetting
     id: row.id,
     groupName: row.group_name,
     groupSubtitle: row.group_subtitle,
+    supportEmail: row.support_email,
     logoPath: row.logo_path,
     logoSignedUrl,
     defaultNotation: isNotationSystem(row.default_notation) ? row.default_notation : 'italian',
@@ -66,9 +71,7 @@ export async function fetchInstanceSettings(): Promise<InstanceSettings> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from('instance_settings')
-    .select(
-      'id, group_name, group_subtitle, logo_path, default_notation, default_theme, updated_at',
-    )
+    .select(INSTANCE_SETTINGS_COLUMNS)
     .eq('id', 1)
     .single<InstanceSettingsRow>();
 
@@ -82,6 +85,7 @@ export async function fetchInstanceSettings(): Promise<InstanceSettings> {
 export interface UpdateInstanceSettingsInput {
   groupName: string;
   groupSubtitle: string | null;
+  supportEmail: string | null;
   defaultNotation: NotationSystem;
   defaultTheme: ThemeMode;
 }
@@ -91,19 +95,19 @@ export async function updateInstanceSettings(
 ): Promise<InstanceSettings> {
   const supabase = getSupabaseClient();
   const trimmedSubtitle = input.groupSubtitle?.trim() ?? '';
+  const trimmedSupportEmail = input.supportEmail?.trim() ?? '';
 
   const { data, error } = await supabase
     .from('instance_settings')
     .update({
       group_name: input.groupName.trim(),
       group_subtitle: trimmedSubtitle.length > 0 ? trimmedSubtitle : null,
+      support_email: trimmedSupportEmail.length > 0 ? trimmedSupportEmail : null,
       default_notation: input.defaultNotation,
       default_theme: input.defaultTheme,
     })
     .eq('id', 1)
-    .select(
-      'id, group_name, group_subtitle, logo_path, default_notation, default_theme, updated_at',
-    )
+    .select(INSTANCE_SETTINGS_COLUMNS)
     .single<InstanceSettingsRow>();
 
   if (error) {
@@ -158,9 +162,7 @@ export async function uploadInstanceLogo(
     .from('instance_settings')
     .update({ logo_path: nextPath })
     .eq('id', 1)
-    .select(
-      'id, group_name, group_subtitle, logo_path, default_notation, default_theme, updated_at',
-    )
+    .select(INSTANCE_SETTINGS_COLUMNS)
     .single<InstanceSettingsRow>();
 
   if (updateError) {
@@ -183,9 +185,7 @@ export async function removeInstanceLogo(
     .from('instance_settings')
     .update({ logo_path: null })
     .eq('id', 1)
-    .select(
-      'id, group_name, group_subtitle, logo_path, default_notation, default_theme, updated_at',
-    )
+    .select(INSTANCE_SETTINGS_COLUMNS)
     .single<InstanceSettingsRow>();
 
   if (error) {

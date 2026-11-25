@@ -38,7 +38,10 @@ describe('PostgreSQL RLS & Security Policies (Milestone 1.1)', () => {
     musicianUserId = musician.userId;
     musicianClient = musician.client;
 
-    await serviceClient.from('instance_settings').update({ group_name: 'Il Mio Coro' }).eq('id', 1);
+    await serviceClient
+      .from('instance_settings')
+      .update({ group_name: 'Il Mio Coro', support_email: null })
+      .eq('id', 1);
     await serviceClient
       .from('live_sessions')
       .update({ is_active: false, conductor_id: null, active_song_id: null })
@@ -67,7 +70,10 @@ describe('PostgreSQL RLS & Security Policies (Milestone 1.1)', () => {
     if (createdInstrumentSlugs.length > 0) {
       await serviceClient.from('instruments').delete().in('slug', createdInstrumentSlugs);
     }
-    await serviceClient.from('instance_settings').update({ group_name: 'Il Mio Coro' }).eq('id', 1);
+    await serviceClient
+      .from('instance_settings')
+      .update({ group_name: 'Il Mio Coro', support_email: null })
+      .eq('id', 1);
     await serviceClient
       .from('live_sessions')
       .update({ is_active: false, conductor_id: null, active_song_id: null })
@@ -387,5 +393,77 @@ describe('PostgreSQL RLS & Security Policies (Milestone 1.1)', () => {
       .update({ is_active: false })
       .eq('id', adminUserId);
     expect(deactivateErr).not.toBeNull();
+  });
+
+  it('enforces admin-only support_email updates and conductor/admin setlist reorder RPC', async () => {
+    const { error: adminSupportErr } = await adminClient
+      .from('instance_settings')
+      .update({ support_email: 'support@arion.local' })
+      .eq('id', 1);
+    expect(adminSupportErr).toBeNull();
+
+    const { data: musicianRead } = await musicianClient
+      .from('instance_settings')
+      .select('support_email')
+      .eq('id', 1)
+      .single();
+    expect(musicianRead?.support_email).toBe('support@arion.local');
+
+    const { data: conductorSupportUpd } = await conductorClient
+      .from('instance_settings')
+      .update({ support_email: 'hijacked@arion.local' })
+      .eq('id', 1)
+      .select('id');
+    expect(conductorSupportUpd ?? []).toHaveLength(0);
+
+    const { data: setlist, error: setlistErr } = await conductorClient
+      .from('setlists')
+      .insert({ title: 'Scaletta Riordino RLS', created_by: conductorUserId })
+      .select('id')
+      .single();
+    expect(setlistErr).toBeNull();
+    if (setlist?.id) createdSetlistIds.push(setlist.id);
+
+    const { data: itemA, error: itemAErr } = await conductorClient
+      .from('setlist_items')
+      .insert({
+        setlist_id: setlist!.id,
+        song_id: '11111111-1111-4111-8111-111111111101',
+        position: 0,
+      })
+      .select('id')
+      .single();
+    const { data: itemB, error: itemBErr } = await conductorClient
+      .from('setlist_items')
+      .insert({
+        setlist_id: setlist!.id,
+        song_id: '11111111-1111-4111-8111-111111111102',
+        position: 1,
+      })
+      .select('id')
+      .single();
+    expect(itemAErr).toBeNull();
+    expect(itemBErr).toBeNull();
+
+    // Musician cannot call reorder_setlist_items
+    const { error: musicianReorderErr } = await musicianClient.rpc('reorder_setlist_items', {
+      p_setlist_id: setlist!.id,
+      p_item_ids: [itemB!.id, itemA!.id],
+    });
+    expect(musicianReorderErr).not.toBeNull();
+
+    // Conductor CAN reorder atomically via RPC
+    const { error: conductorReorderErr } = await conductorClient.rpc('reorder_setlist_items', {
+      p_setlist_id: setlist!.id,
+      p_item_ids: [itemB!.id, itemA!.id],
+    });
+    expect(conductorReorderErr).toBeNull();
+
+    const { data: reordered } = await musicianClient
+      .from('setlist_items')
+      .select('id, position')
+      .eq('setlist_id', setlist!.id)
+      .order('position', { ascending: true });
+    expect(reordered?.map((row) => row.id)).toEqual([itemB!.id, itemA!.id]);
   });
 });

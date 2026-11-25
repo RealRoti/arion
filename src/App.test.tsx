@@ -35,6 +35,44 @@ vi.mock('@/services/songsService', () => ({
   upsertUserSongPreferences: vi.fn(async () => undefined),
 }));
 
+vi.mock('@/services/setlistsService', () => ({
+  listSetlists: vi.fn(async () => []),
+  getSetlistById: vi.fn(async () => null),
+}));
+
+vi.mock('@/services/calendarService', () => ({
+  listCalendarEvents: vi.fn(async () => [
+    {
+      id: 'evt-home-1',
+      title: 'Prova settimanale di repertorio',
+      category: 'rehearsal',
+      eventDate: '2026-12-03',
+      startTime: '20:45',
+      endTime: '22:15',
+      location: 'Sala prove',
+      setlistId: null,
+      setlistTitle: null,
+      notes: null,
+      createdAt: '',
+      updatedAt: '',
+    },
+  ]),
+  getNextUpcomingEvent: vi.fn(async () => ({
+    id: 'evt-home-1',
+    title: 'Prova settimanale di repertorio',
+    category: 'rehearsal',
+    eventDate: '2026-12-03',
+    startTime: '20:45',
+    endTime: '22:15',
+    location: 'Sala prove',
+    setlistId: null,
+    setlistTitle: null,
+    notes: null,
+    createdAt: '',
+    updatedAt: '',
+  })),
+}));
+
 function createMockAuth(
   role: Role,
   status: AuthContextValue['status'] = 'authenticated',
@@ -65,6 +103,7 @@ function createMockAuth(
             id: 1,
             groupName: 'Coro Demo',
             groupSubtitle: null,
+            supportEmail: 'supporto@arion.local',
             logoPath: null,
             logoSignedUrl: null,
             defaultNotation: 'italian',
@@ -104,18 +143,25 @@ describe('Arion App Navigation & RBAC Screens', () => {
     expect(screen.getByRole('heading', { name: it.auth.loginTitle })).toBeInTheDocument();
   });
 
-  vitestIt('renders the 5 primary navigation items and Home workspace when authenticated', () => {
-    renderApp();
+  vitestIt(
+    'renders the 5 primary navigation items and Home workspace when authenticated',
+    async () => {
+      renderApp();
 
-    expect(screen.getAllByRole('link', { name: it.nav.home }).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByRole('link', { name: it.nav.repertoire }).length).toBeGreaterThanOrEqual(
-      1,
-    );
-    expect(screen.getAllByRole('link', { name: it.nav.live }).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByRole('link', { name: it.nav.calendar }).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByRole('link', { name: it.nav.more }).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText(it.home.nextEventSampleTitle)).toBeInTheDocument();
-  });
+      expect(screen.getAllByRole('link', { name: it.nav.home }).length).toBeGreaterThanOrEqual(1);
+      expect(
+        screen.getAllByRole('link', { name: it.nav.repertoire }).length,
+      ).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByRole('link', { name: it.nav.live }).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByRole('link', { name: it.nav.calendar }).length).toBeGreaterThanOrEqual(
+        1,
+      );
+      expect(screen.getAllByRole('link', { name: it.nav.more }).length).toBeGreaterThanOrEqual(1);
+      await waitFor(() => {
+        expect(screen.getByText('Prova settimanale di repertorio')).toBeInTheDocument();
+      });
+    },
+  );
 
   vitestIt('opens Repertorio, enters SongReaderPage, toggles chords and scales font', async () => {
     renderApp(['/repertorio']);
@@ -202,11 +248,13 @@ describe('Arion App Navigation & RBAC Screens', () => {
     },
   );
 
-  vitestIt('switches CalendarPage between Prossimi and Mese views', () => {
+  vitestIt('switches CalendarPage between Prossimi and Mese views', async () => {
     renderApp(['/calendario']);
 
     expect(screen.getByRole('heading', { name: it.calendar.title })).toBeInTheDocument();
-    expect(screen.getByText('Prova settimanale di repertorio')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Prova settimanale di repertorio')).toBeInTheDocument();
+    });
 
     fireEvent.click(screen.getByRole('button', { name: it.calendar.viewMonth }));
     expect(screen.getByRole('button', { name: it.calendar.todayButton })).toBeInTheDocument();
@@ -250,6 +298,10 @@ describe('Arion App Navigation & RBAC Screens', () => {
       fireEvent.click(backLinks[backLinks.length - 1]!);
       fireEvent.click(screen.getByRole('link', { name: it.nav.support }));
       expect(screen.getByRole('heading', { name: it.support.title })).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: it.support.emailButton })).toHaveAttribute(
+        'href',
+        expect.stringContaining('mailto:supporto@arion.local'),
+      );
 
       fireEvent.click(screen.getByRole('link', { name: it.nav.back }));
       fireEvent.click(screen.getByRole('link', { name: it.nav.privacy }));

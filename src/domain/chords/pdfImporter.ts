@@ -2,7 +2,8 @@ import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { convertChordsAboveLyricsToChordPro } from '@/domain/chords/importer';
 import type { ImportChordProOptions, TextImportResult } from '@/domain/chords/types';
 
-export type PdfImportErrorCode = 'INVALID_PDF' | 'SCANNED_PDF_NO_TEXT' | 'EXTRACTION_FAILED';
+export type PdfImportErrorCode =
+  'INVALID_PDF' | 'SCANNED_PDF_NO_TEXT' | 'HYBRID_SCANNED_PDF' | 'EXTRACTION_FAILED';
 
 export class PdfImportError extends Error {
   readonly code: PdfImportErrorCode;
@@ -181,6 +182,161 @@ export function reconstructLinesFromPdfTextItems(runs: readonly PdfTextRun[]): s
   return outputLines;
 }
 
+interface HorizontalSpan {
+  readonly start: number;
+  readonly end: number;
+}
+
+/**
+ * Detects a clear vertical gutter near page center separating a 2-column chord/lyric layout.
+ */
+export function detectTwoColumnSplitX(
+  runs: readonly PdfTextRun[],
+  pageWidth: number,
+): number | null {
+  const nonEmpty = runs.filter((run) => run.str.trim().length > 0);
+  if (nonEmpty.length < 12 || pageWidth < 300) {
+    return null;
+  }
+
+  // Exclude wide lines and centered headers that straddle the central column zone
+  const bodyRuns = nonEmpty.filter((run) => {
+    const estWidth = run.width > 0 ? run.width : run.str.length * 5.5;
+    if (estWidth >= pageWidth * 0.48) {
+      return false;
+    }
+    const straddlesCenterZone = run.x < pageWidth * 0.46 && run.x + estWidth > pageWidth * 0.54;
+    return !straddlesCenterZone;
+  });
+  if (bodyRuns.length < 8) {
+    return null;
+  }
+
+  const spans: HorizontalSpan[] = bodyRuns
+    .map((run) => {
+      const estWidth = run.width > 0 ? run.width : run.str.length * 5.5;
+      return { start: run.x, end: run.x + estWidth };
+    })
+    .sort((a, b) => a.start - b.start);
+
+  const merged: Array<{ start: number; end: number }> = [];
+  for (const span of spans) {
+    const prev = merged.at(-1);
+    if (!prev || span.start > prev.end) {
+      merged.push({ start: span.start, end: span.end });
+    } else if (span.end > prev.end) {
+      prev.end = span.end;
+    }
+  }
+
+  const zoneMin = pageWidth * 0.38;
+  const zoneMax = pageWidth * 0.62;
+  let bestMidpoint: number | null = null;
+  let bestGapWidth = 0;
+
+  for (let i = 1; i < merged.length; i += 1) {
+    const left = merged[i - 1];
+    const right = merged[i];
+    if (!left || !right) continue;
+    const gapWidth = right.start - left.end;
+    const midpoint = (left.end + right.start) / 2;
+    if (gapWidth >= 16 && midpoint >= zoneMin && midpoint <= zoneMax && gapWidth > bestGapWidth) {
+      bestGapWidth = gapWidth;
+      bestMidpoint = midpoint;
+    }
+  }
+
+  if (bestMidpoint === null) {
+    return null;
+  }
+
+  // Reject single-column pages where too many runs cross the candidate gutter
+  const crossingRuns = nonEmpty.filter((run) => {
+    const estWidth = run.width > 0 ? run.width : run.str.length * 5.5;
+    return run.x < bestMidpoint - 4 && run.x + estWidth > bestMidpoint + 4;
+  });
+  if (crossingRuns.length > Math.max(2, Math.floor(nonEmpty.length * 0.2))) {
+    return null;
+  }
+
+  const leftRuns = bodyRuns.filter((run) => {
+    const estWidth = run.width > 0 ? run.width : run.str.length * 5.5;
+    return run.x + estWidth / 2 < bestMidpoint;
+  });
+  const rightRuns = bodyRuns.filter((run) => {
+    const estWidth = run.width > 0 ? run.width : run.str.length * 5.5;
+    return run.x + estWidth / 2 >= bestMidpoint;
+  });
+
+  if (leftRuns.length < 4 || rightRuns.length < 4) {
+    return null;
+  }
+
+  const leftMinY = Math.min(...leftRuns.map((r) => r.y));
+  const leftMaxY = Math.max(...leftRuns.map((r) => r.y));
+  const rightMinY = Math.min(...rightRuns.map((r) => r.y));
+  const rightMaxY = Math.max(...rightRuns.map((r) => r.y));
+
+  const totalSpanY = Math.max(leftMaxY, rightMaxY) - Math.min(leftMinY, rightMinY);
+  const overlapY = Math.min(leftMaxY, rightMaxY) - Math.max(leftMinY, rightMinY);
+
+  if (totalSpanY <= 0 || overlapY / totalSpanY < 0.25) {
+    return null;
+  }
+
+  return bestMidpoint;
+}
+
+/**
+ * Reconstructs plain-text lines for a single page, automatically splitting 2-column
+ * layouts sequentially (header, then left column, then right column) so chords and
+ * lyrics across columns never interleave.
+ */
+export function reconstructPageLinesFromPdfTextItems(
+  runs: readonly PdfTextRun[],
+  pageWidth?: number,
+): string[] {
+  const splitX = pageWidth ? detectTwoColumnSplitX(runs, pageWidth) : null;
+  if (splitX === null) {
+    return reconstructLinesFromPdfTextItems(runs);
+  }
+
+  const headerRuns: PdfTextRun[] = [];
+  const leftRuns: PdfTextRun[] = [];
+  const rightRuns: PdfTextRun[] = [];
+
+  for (const run of runs) {
+    if (run.str.trim().length === 0) continue;
+    const estWidth = run.width > 0 ? run.width : run.str.length * 5.5;
+    const startX = run.x;
+    const endX = run.x + estWidth;
+    if (startX < splitX - 4 && endX > splitX + 4) {
+      headerRuns.push(run);
+    } else if (startX + estWidth / 2 < splitX) {
+      leftRuns.push(run);
+    } else {
+      rightRuns.push(run);
+    }
+  }
+
+  const groups = [
+    reconstructLinesFromPdfTextItems(headerRuns),
+    reconstructLinesFromPdfTextItems(leftRuns),
+    reconstructLinesFromPdfTextItems(rightRuns),
+  ].filter((lines) => lines.length > 0);
+
+  const combined: string[] = [];
+  for (let i = 0; i < groups.length; i += 1) {
+    const groupLines = groups[i];
+    if (!groupLines) continue;
+    if (i > 0 && combined.at(-1) !== '') {
+      combined.push('');
+    }
+    combined.push(...groupLines);
+  }
+  return combined;
+}
+
 export async function extractTextFromPdfArrayBuffer(buffer: ArrayBuffer): Promise<string> {
   const bytes = new Uint8Array(buffer);
   if (!hasPdfMagicHeader(bytes)) {
@@ -191,14 +347,35 @@ export async function extractTextFromPdfArrayBuffer(buffer: ArrayBuffer): Promis
     const pdfjs = await import('pdfjs-dist');
     pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
+    const imageOpCodes = new Set<number>(
+      [
+        pdfjs.OPS?.paintImageXObject,
+        pdfjs.OPS?.paintInlineImageXObject,
+        pdfjs.OPS?.paintImageMaskXObject,
+      ].filter((code): code is number => typeof code === 'number'),
+    );
+
     const loadingTask = pdfjs.getDocument({ data: bytes });
     const doc = await loadingTask.promise;
 
     try {
       const pageTexts: string[] = [];
+      let totalNonEmptyLines = 0;
+      let totalChars = 0;
+      let hasEmbeddedImages = false;
 
       for (let pageNumber = 1; pageNumber <= doc.numPages; pageNumber += 1) {
         const page = await doc.getPage(pageNumber);
+        const viewportWidth =
+          typeof page.getViewport === 'function' ? page.getViewport({ scale: 1 }).width : undefined;
+
+        if (!hasEmbeddedImages && typeof page.getOperatorList === 'function') {
+          const ops = await page.getOperatorList().catch(() => null);
+          if (ops && Array.isArray(ops.fnArray)) {
+            hasEmbeddedImages = ops.fnArray.some((fn) => imageOpCodes.has(fn));
+          }
+        }
+
         const textContent = await page.getTextContent();
         const runs: PdfTextRun[] = [];
 
@@ -229,21 +406,31 @@ export async function extractTextFromPdfArrayBuffer(buffer: ArrayBuffer): Promis
           }
         }
 
-        const lines = reconstructLinesFromPdfTextItems(runs);
+        const lines = reconstructPageLinesFromPdfTextItems(runs, viewportWidth);
+        const nonEmptyLines = lines.filter((line) => line.trim().length > 0);
+        totalNonEmptyLines += nonEmptyLines.length;
+        totalChars += nonEmptyLines.reduce((acc, line) => acc + line.trim().length, 0);
+
         if (lines.length > 0) {
           pageTexts.push(lines.join('\n'));
         }
       }
 
-      const combined = pageTexts.join('\n\n').trim();
-      if (!combined) {
+      if (totalChars === 0) {
         throw new PdfImportError(
           'SCANNED_PDF_NO_TEXT',
           'PDF appears to be a scanned image without selectable text.',
         );
       }
 
-      return combined;
+      if (hasEmbeddedImages && (totalNonEmptyLines <= 2 || totalChars < 60)) {
+        throw new PdfImportError(
+          'HYBRID_SCANNED_PDF',
+          'PDF contains mostly embedded raster images with minimal text.',
+        );
+      }
+
+      return pageTexts.join('\n\n').trim();
     } finally {
       await doc.cleanup();
     }

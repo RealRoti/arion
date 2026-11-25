@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
   Columns2,
   Eye,
   FileText,
+  ListMusic,
   Minus,
   Moon,
   Music2,
@@ -12,12 +15,22 @@ import {
   RotateCcw,
   Sun,
 } from 'lucide-react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { RequirePermission } from '@/components/RequirePermission';
 import { useTheme } from '@/components/useTheme';
 import { parseChordPro, transposeChordProDocument } from '@/domain/chords/chordpro';
-import { calculateEffectiveTransposition, formatKey, parseKey } from '@/domain/chords/transposer';
+import {
+  calculateEffectiveTransposition,
+  computeKeyOffsetSemitones,
+  formatKey,
+  parseKey,
+} from '@/domain/chords/transposer';
 import type { InstrumentDefaultView } from '@/domain/models/instruments';
+import {
+  getSequentialNavigation,
+  resolveEffectiveSetlistKey,
+  type SetlistWithItems,
+} from '@/domain/models/setlists';
 import {
   pickPreferredPdfAsset,
   resolveReaderViewMode,
@@ -31,6 +44,7 @@ import { usePedalNavigation } from '@/features/reader/usePedalNavigation';
 import { useWakeLock } from '@/features/reader/useWakeLock';
 import { it } from '@/i18n/it';
 import { updateOwnProfile } from '@/services/authService';
+import { getSetlistById } from '@/services/setlistsService';
 import {
   getSongById,
   getUserSongPreferences,
@@ -42,11 +56,17 @@ const CAPO_FRET_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as const;
 
 export function SongReaderPage() {
   const { songId } = useParams<{ songId: string }>();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { theme, setTheme, notation } = useTheme();
   const { profile, activeInstrument } = useAuth();
 
+  const setlistIdParam = searchParams.get('setlist');
+  const setlistItemIdParam = searchParams.get('item');
+
   const [song, setSong] = useState<Song | null>(null);
   const [assets, setAssets] = useState<SongAsset[]>([]);
+  const [activeSetlist, setActiveSetlist] = useState<SetlistWithItems | null>(null);
   const [loading, setLoading] = useState(Boolean(songId));
   const [notFound, setNotFound] = useState(!songId);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -63,6 +83,16 @@ export function SongReaderPage() {
   const [fontScale, setFontScale] = useState(() => profile?.fontScale ?? 1);
   const [twoColumns, setTwoColumns] = useState(false);
   const [preferredAssetId, setPreferredAssetId] = useState<string | null>(null);
+
+  const routeResetKey = `${songId ?? ''}::${setlistIdParam ?? ''}::${setlistItemIdParam ?? ''}`;
+  const [prevRouteResetKey, setPrevRouteResetKey] = useState(routeResetKey);
+  if (routeResetKey !== prevRouteResetKey) {
+    setPrevRouteResetKey(routeResetKey);
+    setStudyShift(0);
+    setLoading(Boolean(songId));
+    setNotFound(!songId);
+    setErrorMessage(null);
+  }
 
   const pdfAssets = useMemo(() => assets.filter((asset) => asset.assetType === 'pdf'), [assets]);
   const hasPdfAssets = pdfAssets.length > 0;
@@ -90,10 +120,11 @@ export function SongReaderPage() {
 
     const load = async () => {
       try {
-        const [loadedSong, loadedAssets, loadedPrefs] = await Promise.all([
+        const [loadedSong, loadedAssets, loadedPrefs, loadedSetlist] = await Promise.all([
           getSongById(songId),
           listSongAssets(songId),
           userId ? getUserSongPreferences(userId, songId).catch(() => null) : Promise.resolve(null),
+          setlistIdParam ? getSetlistById(setlistIdParam).catch(() => null) : Promise.resolve(null),
         ]);
 
         if (cancelled) return;
@@ -108,6 +139,7 @@ export function SongReaderPage() {
 
         setSong(loadedSong);
         setAssets(loadedAssets);
+        setActiveSetlist(loadedSetlist);
         setCapoFrets(loadedPrefs?.capoFrets ?? 0);
         setPreferredAssetId(loadedPrefs?.preferredAssetId ?? null);
         setSelectedView(
@@ -132,7 +164,20 @@ export function SongReaderPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeInstrument, profile?.id, songId]);
+  }, [activeInstrument, profile?.id, setlistIdParam, songId]);
+
+  const setlistNavigation = useMemo(() => {
+    if (!activeSetlist) return null;
+    return getSequentialNavigation(activeSetlist.items, setlistItemIdParam, songId);
+  }, [activeSetlist, setlistItemIdParam, songId]);
+
+  const navigateToSetlistItem = useCallback(
+    (targetItemId: string, targetSongId: string) => {
+      if (!activeSetlist) return;
+      navigate(`/repertorio/${targetSongId}?setlist=${activeSetlist.id}&item=${targetItemId}`);
+    },
+    [activeSetlist, navigate],
+  );
 
   const wakeLockActive = useWakeLock(Boolean(song) && !loading);
 
@@ -149,20 +194,35 @@ export function SongReaderPage() {
       pdfPedalRef.current.next();
       return;
     }
-    if (typeof window !== 'undefined' && typeof window.scrollBy === 'function') {
-      window.scrollBy({ top: Math.round(window.innerHeight * 0.75), behavior: 'smooth' });
+    if (typeof window !== 'undefined') {
+      const atBottom =
+        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 24;
+      if (atBottom && setlistNavigation?.nextItem) {
+        navigateToSetlistItem(setlistNavigation.nextItem.id, setlistNavigation.nextItem.songId);
+        return;
+      }
+      if (typeof window.scrollBy === 'function') {
+        window.scrollBy({ top: Math.round(window.innerHeight * 0.75), behavior: 'smooth' });
+      }
     }
-  }, [selectedView]);
+  }, [navigateToSetlistItem, selectedView, setlistNavigation]);
 
   const handlePedalPrev = useCallback(() => {
     if (selectedView === 'pdf' && pdfPedalRef.current) {
       pdfPedalRef.current.prev();
       return;
     }
-    if (typeof window !== 'undefined' && typeof window.scrollBy === 'function') {
-      window.scrollBy({ top: -Math.round(window.innerHeight * 0.75), behavior: 'smooth' });
+    if (typeof window !== 'undefined') {
+      const atTop = window.scrollY <= 8;
+      if (atTop && setlistNavigation?.prevItem) {
+        navigateToSetlistItem(setlistNavigation.prevItem.id, setlistNavigation.prevItem.songId);
+        return;
+      }
+      if (typeof window.scrollBy === 'function') {
+        window.scrollBy({ top: -Math.round(window.innerHeight * 0.75), behavior: 'smooth' });
+      }
     }
-  }, [selectedView]);
+  }, [navigateToSetlistItem, selectedView, setlistNavigation]);
 
   usePedalNavigation({
     enabled: Boolean(song) && !loading,
@@ -170,8 +230,29 @@ export function SongReaderPage() {
     onPrev: handlePedalPrev,
   });
 
+  const overrideKey = setlistNavigation?.currentItem?.overrideKey ?? null;
+
   const effectiveTransposition = useMemo(() => {
     if (!song) return null;
+    if (overrideKey) {
+      if (studyShift === 0) {
+        return calculateEffectiveTransposition({
+          originalKey: song.originalKey,
+          activeKey: overrideKey,
+          instrumentTranspositionSemitones: activeInstrument?.transpositionSemitones ?? 0,
+          capoFrets,
+          notation,
+        });
+      }
+      const overrideOffset = computeKeyOffsetSemitones(song.originalKey, overrideKey);
+      return calculateEffectiveTransposition({
+        originalKey: song.originalKey,
+        explicitSemitoneShift: overrideOffset + studyShift,
+        instrumentTranspositionSemitones: activeInstrument?.transpositionSemitones ?? 0,
+        capoFrets,
+        notation,
+      });
+    }
     return calculateEffectiveTransposition({
       originalKey: song.originalKey,
       explicitSemitoneShift: studyShift,
@@ -179,7 +260,14 @@ export function SongReaderPage() {
       capoFrets,
       notation,
     });
-  }, [activeInstrument?.transpositionSemitones, capoFrets, notation, song, studyShift]);
+  }, [
+    activeInstrument?.transpositionSemitones,
+    capoFrets,
+    notation,
+    overrideKey,
+    song,
+    studyShift,
+  ]);
 
   const parsedDoc = useMemo(() => (song ? parseChordPro(song.chordproContent) : null), [song]);
 
@@ -292,11 +380,11 @@ export function SongReaderPage() {
       {/* Top Action Bar */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Link
-          to="/repertorio"
+          to={activeSetlist ? `/scalette/${activeSetlist.id}` : '/repertorio'}
           className="touch-target inline-flex items-center gap-1.5 text-sm font-bold text-[var(--arion-text-muted)] hover:text-[var(--arion-text)]"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          <span>{it.reader.backToRepertoire}</span>
+          <span>{activeSetlist ? it.reader.backToSetlist : it.reader.backToRepertoire}</span>
         </Link>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -478,6 +566,58 @@ export function SongReaderPage() {
         </div>
       ) : null}
 
+      {/* Sequential Setlist Navigation Strip */}
+      {activeSetlist && setlistNavigation && setlistNavigation.currentItem ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-[var(--arion-accent-border)] bg-[var(--arion-accent-soft)] px-3 py-2 text-xs">
+          <div className="flex min-w-0 items-center gap-2 font-bold text-[var(--arion-text)]">
+            <ListMusic className="h-4 w-4 shrink-0 text-[var(--arion-accent)]" aria-hidden="true" />
+            <span className="truncate">
+              {it.reader.setlistPositionLabel(
+                setlistNavigation.currentIndex + 1,
+                setlistNavigation.total,
+                activeSetlist.title,
+              )}
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              disabled={!setlistNavigation.prevItem}
+              onClick={() => {
+                if (setlistNavigation.prevItem) {
+                  navigateToSetlistItem(
+                    setlistNavigation.prevItem.id,
+                    setlistNavigation.prevItem.songId,
+                  );
+                }
+              }}
+              className="touch-target inline-flex items-center gap-1 rounded border border-[var(--arion-border)] bg-[var(--arion-surface)] px-2.5 py-1 font-bold text-[var(--arion-text)] disabled:opacity-40"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>{it.reader.setlistPrevButton}</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={!setlistNavigation.nextItem}
+              onClick={() => {
+                if (setlistNavigation.nextItem) {
+                  navigateToSetlistItem(
+                    setlistNavigation.nextItem.id,
+                    setlistNavigation.nextItem.songId,
+                  );
+                }
+              }}
+              className="touch-target inline-flex items-center gap-1 rounded bg-[var(--arion-primary)] px-2.5 py-1 font-bold text-[var(--arion-primary-contrast)] disabled:opacity-40"
+            >
+              <span>{it.reader.setlistNextButton}</span>
+              <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {/* Main Lectern Card */}
       <article className="rounded-md border border-[var(--arion-border)] bg-[var(--arion-surface)] p-5 shadow-2xs sm:p-7">
         <header className="space-y-2 border-b border-[var(--arion-border)] pb-4">
@@ -538,6 +678,15 @@ export function SongReaderPage() {
             ) : null}
           </div>
 
+          {setlistNavigation?.currentItem?.notes ? (
+            <div className="rounded border border-[var(--arion-border)] bg-[var(--arion-bg)] px-3 py-2 text-xs text-[var(--arion-text)]">
+              <strong className="text-[var(--arion-accent)]">
+                {it.reader.setlistItemNotesLabel}:
+              </strong>{' '}
+              {setlistNavigation.currentItem.notes}
+            </div>
+          ) : null}
+
           {song.conductorNotes ? (
             <div className="rounded border border-[var(--arion-accent-border)] bg-[var(--arion-accent-soft)] px-3 py-2 text-xs text-[var(--arion-text)]">
               <strong className="text-[var(--arion-accent)]">
@@ -555,6 +704,24 @@ export function SongReaderPage() {
               selectedAssetId={selectedPdfAsset?.id ?? null}
               onSelectAsset={handleSelectPdfAsset}
               onRegisterPedalHandlers={registerPdfPedal}
+              onBoundaryPrev={
+                setlistNavigation?.prevItem
+                  ? () =>
+                      navigateToSetlistItem(
+                        setlistNavigation.prevItem!.id,
+                        setlistNavigation.prevItem!.songId,
+                      )
+                  : undefined
+              }
+              onBoundaryNext={
+                setlistNavigation?.nextItem
+                  ? () =>
+                      navigateToSetlistItem(
+                        setlistNavigation.nextItem!.id,
+                        setlistNavigation.nextItem!.songId,
+                      )
+                  : undefined
+              }
             />
           ) : (
             <ChordProRenderer
@@ -566,6 +733,42 @@ export function SongReaderPage() {
           )}
         </div>
       </article>
+
+      {activeSetlist && setlistNavigation?.nextItem ? (
+        <button
+          type="button"
+          onClick={() =>
+            navigateToSetlistItem(
+              setlistNavigation.nextItem!.id,
+              setlistNavigation.nextItem!.songId,
+            )
+          }
+          className="flex w-full items-center justify-between gap-3 rounded-md border border-[var(--arion-accent-border)] bg-[var(--arion-surface)] px-4 py-3 text-left shadow-2xs transition-colors hover:border-[var(--arion-accent)]"
+        >
+          <div className="min-w-0">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--arion-accent)]">
+              {it.reader.nextSongBannerLabel}
+            </p>
+            <p className="truncate text-sm font-bold text-[var(--arion-text)]">
+              {setlistNavigation.nextItem.song?.title ?? '-'} ·{' '}
+              <span className="text-[var(--arion-accent)]">
+                {(() => {
+                  const nextKey = resolveEffectiveSetlistKey(
+                    setlistNavigation.nextItem.song?.originalKey ?? 'Do',
+                    setlistNavigation.nextItem.overrideKey,
+                  );
+                  const parsed = parseKey(nextKey);
+                  return parsed ? formatKey(parsed, notation) : nextKey;
+                })()}
+              </span>
+            </p>
+          </div>
+          <ChevronRight
+            className="h-5 w-5 shrink-0 text-[var(--arion-accent)]"
+            aria-hidden="true"
+          />
+        </button>
+      ) : null}
     </div>
   );
 }

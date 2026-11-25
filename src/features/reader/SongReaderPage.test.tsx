@@ -9,12 +9,17 @@ import type { AuthContextValue } from '@/features/auth/authContextStore';
 import { AuthProvider } from '@/features/auth/AuthProvider';
 import { SongReaderPage } from '@/features/reader/SongReaderPage';
 import { it } from '@/i18n/it';
+import { getSetlistById } from '@/services/setlistsService';
 import {
   getSongById,
   getUserSongPreferences,
   listSongAssets,
   upsertUserSongPreferences,
 } from '@/services/songsService';
+
+vi.mock('@/services/setlistsService', () => ({
+  getSetlistById: vi.fn(async () => null),
+}));
 
 vi.mock('@/services/songsService', () => ({
   getSongById: vi.fn(),
@@ -114,7 +119,7 @@ const ORGAN: Instrument = {
   sortOrder: 30,
 };
 
-function renderReader(activeInstrument: Instrument | null) {
+function renderReader(activeInstrument: Instrument | null, initialEntry = '/repertorio/song-1') {
   const permissions = getPermissionsForRole('musician', true);
   const authOverride: AuthContextValue = {
     status: 'authenticated',
@@ -145,7 +150,7 @@ function renderReader(activeInstrument: Instrument | null) {
   };
 
   render(
-    <MemoryRouter initialEntries={['/repertorio/song-1']}>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <ThemeProvider>
         <AuthProvider valueOverride={authOverride}>
           <Routes>
@@ -224,6 +229,69 @@ describe('SongReaderPage (Unified ChordPro + PDF.js)', () => {
       });
       expect(document.querySelector('iframe')).toBeNull();
       expect(document.querySelector('embed')).toBeNull();
+    },
+  );
+
+  vitestIt(
+    'applies setlist overrideKey transposition and shows Next Song banner in sequential mode',
+    async () => {
+      vi.mocked(getSetlistById).mockResolvedValue({
+        id: 'sl-1',
+        title: 'Scaletta Domenica',
+        eventDate: null,
+        notes: null,
+        itemCount: 2,
+        createdAt: '',
+        updatedAt: '',
+        items: [
+          {
+            id: 'item-1',
+            setlistId: 'sl-1',
+            songId: 'song-1',
+            position: 0,
+            overrideKey: 'La',
+            notes: 'Attacco deciso',
+            song: {
+              id: 'song-1',
+              title: 'Canto di Prova',
+              author: null,
+              originalKey: 'Sol',
+              tempoBpm: 76,
+              timeSignature: '4/4',
+            },
+          },
+          {
+            id: 'item-2',
+            setlistId: 'sl-1',
+            songId: 'song-2',
+            position: 1,
+            overrideKey: 'Do',
+            notes: null,
+            song: {
+              id: 'song-2',
+              title: 'Canto Successivo',
+              author: null,
+              originalKey: 'Re',
+              tempoBpm: null,
+              timeSignature: null,
+            },
+          },
+        ],
+      });
+
+      renderReader(GUITAR, '/repertorio/song-1?setlist=sl-1&item=item-1');
+
+      await waitFor(() => {
+        expect(screen.getByText('La')).toBeInTheDocument();
+      });
+
+      expect(
+        screen.getByText(it.reader.setlistPositionLabel(1, 2, 'Scaletta Domenica')),
+      ).toBeInTheDocument();
+      expect(screen.getByText('Attacco deciso')).toBeInTheDocument();
+      expect(screen.getByText('Mi/Sol#')).toBeInTheDocument();
+      expect(screen.getByText(it.reader.nextSongBannerLabel)).toBeInTheDocument();
+      expect(screen.getByText(/Canto Successivo/)).toBeInTheDocument();
     },
   );
 });

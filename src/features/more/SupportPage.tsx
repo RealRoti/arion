@@ -1,10 +1,13 @@
 import { ArrowLeft, Bug, Mail, Radio } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getAppEnv } from '@/config/env';
+import { useAuth } from '@/features/auth/useAuth';
 import { it } from '@/i18n/it';
 
 export function SupportPage() {
   const env = getAppEnv();
+  const { instanceSettings } = useAuth();
+  const supportEmail = instanceSettings?.supportEmail?.trim() || env.supportEmail;
   const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : '-';
 
   const mailBody = [
@@ -16,8 +19,8 @@ export function SupportPage() {
     `User-Agent: ${userAgent}`,
   ].join('\n');
 
-  const mailtoHref = env.supportEmail
-    ? `mailto:${env.supportEmail}?subject=${encodeURIComponent(
+  const mailtoHref = supportEmail
+    ? `mailto:${supportEmail}?subject=${encodeURIComponent(
         `${it.support.emailSubject} ${it.app.versionLabel(env.appVersion)}`,
       )}&body=${encodeURIComponent(mailBody)}`
     : null;

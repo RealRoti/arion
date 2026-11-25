@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent } from 'react';
-import { FileUp, Sparkles } from 'lucide-react';
+import { FileUp, ScanText, Sparkles } from 'lucide-react';
 import {
   convertChordsAboveLyricsToChordPro,
   DocxImportError,
@@ -9,6 +9,11 @@ import {
   importSongFromMusicXmlArrayBuffer,
   MusicXmlImportError,
 } from '@/domain/chords/musicXmlImporter';
+import {
+  importSongFromOcrImageBlob,
+  importSongFromOcrPdfArrayBuffer,
+  OcrImportError,
+} from '@/domain/chords/ocrImporter';
 import { importSongFromPdfArrayBuffer, PdfImportError } from '@/domain/chords/pdfImporter';
 import type { NotationSystem } from '@/domain/models/theme';
 import { useTheme } from '@/components/useTheme';
@@ -25,6 +30,11 @@ interface SongImportWizardProps {
   }) => void;
 }
 
+type PendingOcrSource =
+  | { readonly kind: 'pdf'; readonly buffer: ArrayBuffer }
+  | { readonly kind: 'image'; readonly file: File }
+  | null;
+
 export function SongImportWizard({ onApply }: SongImportWizardProps) {
   const { notation } = useTheme();
   const [targetNotation, setTargetNotation] = useState<NotationSystem>(notation);
@@ -37,6 +47,8 @@ export function SongImportWizard({ onApply }: SongImportWizardProps) {
   const [detectedTempoBpm, setDetectedTempoBpm] = useState<number | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [pendingOcrSource, setPendingOcrSource] = useState<PendingOcrSource>(null);
+  const [ocrProgressLabel, setOcrProgressLabel] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const applyConversionResult = (result: {
@@ -55,6 +67,8 @@ export function SongImportWizard({ onApply }: SongImportWizardProps) {
     setDetectedAuthor(result.detectedAuthor ?? null);
     setDetectedTimeSignature(result.detectedTimeSignature ?? null);
     setDetectedTempoBpm(result.detectedTempoBpm ?? null);
+    setPendingOcrSource(null);
+    setOcrProgressLabel(null);
     setErrorMessage(null);
     setStatusMessage(
       result.warnings.includes('no_chords_detected')
@@ -71,12 +85,28 @@ export function SongImportWizard({ onApply }: SongImportWizardProps) {
     setBusy(true);
     setErrorMessage(null);
     setStatusMessage(null);
+    setPendingOcrSource(null);
+    setOcrProgressLabel(null);
+
+    let lastPdfBuffer: ArrayBuffer | null = null;
 
     try {
       const lowerName = file.name.trim().toLowerCase();
 
       if (lowerName.endsWith('.musx')) {
         setErrorMessage(it.songEditor.importMusxUnsupportedError);
+        return;
+      }
+
+      if (
+        lowerName.endsWith('.png') ||
+        lowerName.endsWith('.jpg') ||
+        lowerName.endsWith('.jpeg') ||
+        lowerName.endsWith('.webp') ||
+        file.type.startsWith('image/')
+      ) {
+        setPendingOcrSource({ kind: 'image', file });
+        setStatusMessage(it.songEditor.importOcrImageReady);
         return;
       }
 
@@ -95,6 +125,7 @@ export function SongImportWizard({ onApply }: SongImportWizardProps) {
       }
 
       if (lowerName.endsWith('.pdf')) {
+        lastPdfBuffer = buffer;
         const result = await importSongFromPdfArrayBuffer(buffer, { targetNotation });
         applyConversionResult(result);
         return;
@@ -120,7 +151,17 @@ export function SongImportWizard({ onApply }: SongImportWizardProps) {
       }
       if (err instanceof PdfImportError) {
         if (err.code === 'SCANNED_PDF_NO_TEXT') {
+          if (lastPdfBuffer) {
+            setPendingOcrSource({ kind: 'pdf', buffer: lastPdfBuffer });
+          }
           setErrorMessage(it.songEditor.importScannedPdfError);
+          return;
+        }
+        if (err.code === 'HYBRID_SCANNED_PDF') {
+          if (lastPdfBuffer) {
+            setPendingOcrSource({ kind: 'pdf', buffer: lastPdfBuffer });
+          }
+          setErrorMessage(it.songEditor.importHybridScannedPdfError);
           return;
         }
         if (err.code === 'INVALID_PDF') {
@@ -139,6 +180,41 @@ export function SongImportWizard({ onApply }: SongImportWizardProps) {
         }
       }
       setErrorMessage(it.songEditor.importGenericError);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleRunOcr = async () => {
+    if (!pendingOcrSource || busy) return;
+    setBusy(true);
+    setErrorMessage(null);
+    setStatusMessage(null);
+    setOcrProgressLabel(it.songEditor.importOcrRunning(1, 1, 0));
+
+    try {
+      const result =
+        pendingOcrSource.kind === 'pdf'
+          ? await importSongFromOcrPdfArrayBuffer(pendingOcrSource.buffer, {
+              targetNotation,
+              onProgress: ({ page, totalPages, progress }) => {
+                setOcrProgressLabel(it.songEditor.importOcrRunning(page, totalPages, progress));
+              },
+            })
+          : await importSongFromOcrImageBlob(pendingOcrSource.file, {
+              targetNotation,
+              onProgress: ({ page, totalPages, progress }) => {
+                setOcrProgressLabel(it.songEditor.importOcrRunning(page, totalPages, progress));
+              },
+            });
+      applyConversionResult(result);
+    } catch (err) {
+      setOcrProgressLabel(null);
+      if (err instanceof OcrImportError && err.code === 'EMPTY_OCR_TEXT') {
+        setErrorMessage(it.songEditor.importOcrEmptyError);
+      } else {
+        setErrorMessage(it.songEditor.importOcrFailedError);
+      }
     } finally {
       setBusy(false);
     }
@@ -175,7 +251,7 @@ export function SongImportWizard({ onApply }: SongImportWizardProps) {
               id="import-file-input"
               type="file"
               disabled={busy}
-              accept=".docx,.doc,.pdf,.musicxml,.xml,.mxl,.musx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,application/vnd.recordare.musicxml+xml,application/vnd.recordare.musicxml,application/xml,text/xml"
+              accept=".docx,.doc,.pdf,.musicxml,.xml,.mxl,.musx,.png,.jpg,.jpeg,.webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,application/vnd.recordare.musicxml+xml,application/vnd.recordare.musicxml,application/xml,text/xml,image/png,image/jpeg,image/webp"
               onChange={(e) => void handleFileUpload(e)}
               className="sr-only"
             />
@@ -239,6 +315,29 @@ export function SongImportWizard({ onApply }: SongImportWizardProps) {
         <p role="alert" className="text-xs font-semibold text-[var(--arion-danger)]">
           {errorMessage}
         </p>
+      ) : null}
+
+      {ocrProgressLabel ? (
+        <p role="status" className="text-xs font-semibold text-[var(--arion-accent)]">
+          {ocrProgressLabel}
+        </p>
+      ) : null}
+
+      {pendingOcrSource ? (
+        <div className="flex flex-wrap items-center gap-2 rounded border border-[var(--arion-accent-border)] bg-[var(--arion-surface)] p-3">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void handleRunOcr()}
+            className="touch-target inline-flex items-center gap-2 rounded-md bg-[var(--arion-primary)] px-3.5 py-2 text-xs font-bold text-[var(--arion-primary-contrast)] hover:bg-[var(--arion-primary-hover)] disabled:opacity-50"
+          >
+            <ScanText className="h-4 w-4 text-[var(--arion-accent)]" aria-hidden="true" />
+            <span>{it.songEditor.importOcrButton}</span>
+          </button>
+          <span className="text-[11px] text-[var(--arion-text-muted)]">
+            {it.songEditor.importOcrHint}
+          </span>
+        </div>
       ) : null}
 
       {convertedChordPro ? (

@@ -14,6 +14,7 @@
 - **Istanza del singolo coro:** ogni deployment configura la propria identità direttamente a runtime tramite la tabella `instance_settings` gestita dall'Admin:
   - `group_name`: nome del coro o ensemble mostrato in intestazione e schermata di accesso (default generico: `"Il Mio Coro"` / `"Arion"`).
   - `group_subtitle`: sottotitolo opzionale (es. motto o sezione).
+  - `support_email`: indirizzo email opzionale del supporto tecnico dell'istanza.
   - `logo_url`: logo personalizzato opzionale caricato su Storage privato (in assenza, viene mostrato il logo ufficiale delfino di Arion).
   - `default_notation`: notazione di default dell'istanza (`italian` o `english`).
   - `default_theme`: tema di default (`daylight`, `stage_dark`, `oled_black`).

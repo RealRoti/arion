@@ -13,6 +13,8 @@ interface PdfCanvasViewerProps {
   readonly onRegisterPedalHandlers?: (
     handlers: { next: () => void; prev: () => void } | null,
   ) => void;
+  readonly onBoundaryPrev?: () => void;
+  readonly onBoundaryNext?: () => void;
 }
 
 export function PdfCanvasViewer({
@@ -20,6 +22,8 @@ export function PdfCanvasViewer({
   selectedAssetId,
   onSelectAsset,
   onRegisterPedalHandlers,
+  onBoundaryPrev,
+  onBoundaryNext,
 }: PdfCanvasViewerProps) {
   const pdfAssets = assets.filter((asset) => asset.assetType === 'pdf');
   const activeAsset =
@@ -45,13 +49,29 @@ export function PdfCanvasViewer({
     setPageNumber((prev) => (totalPages > 0 ? Math.min(totalPages, prev + 1) : prev));
   }, [totalPages]);
 
+  const handlePedalPrev = useCallback(() => {
+    if (pageNumber <= 1 && onBoundaryPrev) {
+      onBoundaryPrev();
+      return;
+    }
+    goPrev();
+  }, [goPrev, onBoundaryPrev, pageNumber]);
+
+  const handlePedalNext = useCallback(() => {
+    if (totalPages > 0 && pageNumber >= totalPages && onBoundaryNext) {
+      onBoundaryNext();
+      return;
+    }
+    goNext();
+  }, [goNext, onBoundaryNext, pageNumber, totalPages]);
+
   useEffect(() => {
     if (!onRegisterPedalHandlers) return;
-    onRegisterPedalHandlers({ next: goNext, prev: goPrev });
+    onRegisterPedalHandlers({ next: handlePedalNext, prev: handlePedalPrev });
     return () => {
       onRegisterPedalHandlers(null);
     };
-  }, [goNext, goPrev, onRegisterPedalHandlers]);
+  }, [handlePedalNext, handlePedalPrev, onRegisterPedalHandlers]);
 
   useEffect(() => {
     if (!activeAsset) {

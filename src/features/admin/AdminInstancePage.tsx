@@ -38,6 +38,7 @@ export function AdminInstancePage() {
     instanceSettings?.groupName ?? it.app.defaultGroupName,
   );
   const [groupSubtitle, setGroupSubtitle] = useState(instanceSettings?.groupSubtitle ?? '');
+  const [supportEmail, setSupportEmail] = useState(instanceSettings?.supportEmail ?? '');
   const [defaultTheme, setDefaultTheme] = useState<ThemeMode>(
     instanceSettings?.defaultTheme ?? 'daylight',
   );
@@ -62,6 +63,7 @@ export function AdminInstancePage() {
         if (!cancelled) {
           setGroupName(latest.groupName);
           setGroupSubtitle(latest.groupSubtitle ?? '');
+          setSupportEmail(latest.supportEmail ?? '');
           setDefaultTheme(latest.defaultTheme);
           setDefaultNotation(latest.defaultNotation);
           setLogoPath(latest.logoPath);
@@ -88,6 +90,7 @@ export function AdminInstancePage() {
       await updateInstanceSettings({
         groupName,
         groupSubtitle: groupSubtitle.trim() || null,
+        supportEmail: supportEmail.trim() || null,
         defaultTheme,
         defaultNotation,
       });
@@ -218,6 +221,26 @@ export function AdminInstancePage() {
               placeholder={it.adminInstance.groupSubtitlePlaceholder}
               className="min-h-11 w-full rounded-md border border-[var(--arion-border)] bg-[var(--arion-bg)] px-3.5 py-2 text-sm text-[var(--arion-text)] focus:border-[var(--arion-primary)] focus:outline-none"
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <label
+              htmlFor="instance-support-email"
+              className="block text-sm font-bold text-[var(--arion-text)]"
+            >
+              {it.adminInstance.supportEmailLabel}
+            </label>
+            <input
+              id="instance-support-email"
+              type="email"
+              value={supportEmail}
+              onChange={(e) => setSupportEmail(e.target.value)}
+              placeholder={it.adminInstance.supportEmailPlaceholder}
+              className="min-h-11 w-full rounded-md border border-[var(--arion-border)] bg-[var(--arion-bg)] px-3.5 py-2 text-sm text-[var(--arion-text)] focus:border-[var(--arion-primary)] focus:outline-none"
+            />
+            <p className="text-xs text-[var(--arion-text-muted)]">
+              {it.adminInstance.supportEmailHint}
+            </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">

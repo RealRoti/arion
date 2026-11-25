@@ -23,6 +23,7 @@ import { SupportPage } from '@/features/more/SupportPage';
 import { SongReaderPage } from '@/features/reader/SongReaderPage';
 import { RepertoirePage } from '@/features/repertoire/RepertoirePage';
 import { SongEditorPage } from '@/features/repertoire/SongEditorPage';
+import { SetlistDetailPage } from '@/features/setlists/SetlistDetailPage';
 import { SetlistsPage } from '@/features/setlists/SetlistsPage';
 import { it } from '@/i18n/it';
 
@@ -93,6 +94,7 @@ function AppGate() {
         <Route path="/live" element={<LivePage />} />
         <Route path="/calendario" element={<CalendarPage />} />
         <Route path="/scalette" element={<SetlistsPage />} />
+        <Route path="/scalette/:setlistId" element={<SetlistDetailPage />} />
         <Route path="/altro" element={<MoreMenuPage />} />
         <Route path="/impostazioni" element={<SettingsPage />} />
         <Route path="/guida" element={<GuidePage />} />

@@ -9,6 +9,31 @@ import { SongEditorPage } from '@/features/repertoire/SongEditorPage';
 import { it } from '@/i18n/it';
 import { createSong } from '@/services/songsService';
 
+const mockOcrPdfImport = vi.fn();
+vi.mock('@/domain/chords/ocrImporter', () => ({
+  OcrImportError: class extends Error {
+    readonly code: string;
+    constructor(code: string, message: string) {
+      super(message);
+      this.code = code;
+    }
+  },
+  importSongFromOcrPdfArrayBuffer: (...args: unknown[]) => mockOcrPdfImport(...args),
+  importSongFromOcrImageBlob: vi.fn(),
+}));
+
+const mockPdfImport = vi.fn();
+vi.mock('@/domain/chords/pdfImporter', () => ({
+  PdfImportError: class extends Error {
+    readonly code: string;
+    constructor(code: string, message: string) {
+      super(message);
+      this.code = code;
+    }
+  },
+  importSongFromPdfArrayBuffer: (...args: unknown[]) => mockPdfImport(...args),
+}));
+
 vi.mock('@/services/songsService', () => ({
   createSong: vi.fn(),
   getSongById: vi.fn(async () => null),
@@ -193,4 +218,43 @@ describe('SongEditorPage & Import Wizard', () => {
       expect(screen.getByLabelText(it.songEditor.tempoLabel)).toHaveValue(92);
     },
   );
+
+  vitestIt('shows hybrid PDF warning and lets user invoke optional OCR extraction', async () => {
+    const { PdfImportError } = await import('@/domain/chords/pdfImporter');
+    mockPdfImport.mockRejectedValueOnce(new PdfImportError('HYBRID_SCANNED_PDF', 'Hybrid PDF'));
+    mockOcrPdfImport.mockResolvedValueOnce({
+      chordpro: '{start_of_verse: Strofa 1}\n[La]Questo [Mi]canto\n{end_of_verse}',
+      detectedTitle: 'Canto OCR',
+      detectedKey: 'La',
+      detectedChordLines: 1,
+      warnings: [],
+    });
+
+    renderEditor('conductor');
+    fireEvent.click(screen.getByRole('button', { name: it.songEditor.importToggleOpen }));
+
+    const fileInput = screen.getByLabelText(it.songEditor.importFileLabel);
+    const hybridPdf = new File([new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d])], 'accordi.pdf', {
+      type: 'application/pdf',
+    });
+    Object.defineProperty(hybridPdf, 'arrayBuffer', {
+      value: async () => new Uint8Array([0x25, 0x50, 0x44, 0x46, 0x2d]).buffer,
+    });
+
+    fireEvent.change(fileInput, { target: { files: [hybridPdf] } });
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        it.songEditor.importHybridScannedPdfError,
+      );
+    });
+
+    const ocrButton = screen.getByRole('button', { name: it.songEditor.importOcrButton });
+    fireEvent.click(ocrButton);
+
+    await waitFor(() => {
+      expect(mockOcrPdfImport).toHaveBeenCalledTimes(1);
+      expect(screen.getByText(it.songEditor.importSuccess(1))).toBeInTheDocument();
+    });
+  });
 });
