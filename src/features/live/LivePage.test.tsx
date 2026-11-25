@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it as vitestIt, vi } from 'vitest';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -387,7 +387,10 @@ describe('LivePage (Live Mode v1 Realtime Console & Musician Sync)', () => {
         issuedByName: 'Maestro Demo',
       });
       await waitFor(() => {
-        expect(screen.getByRole('status')).toHaveTextContent('Senza intro');
+        const toast = screen.getByTestId('live-flash-toast');
+        expect(toast).toHaveTextContent('Senza intro');
+        expect(toast.parentElement).toHaveClass('fixed', 'z-[80]');
+        expect(toast.parentElement?.parentElement).toBe(document.body);
       });
 
       // Musician locally consults another song -> detaches
@@ -431,5 +434,44 @@ describe('LivePage (Live Mode v1 Realtime Console & Musician Sync)', () => {
       expect(updateLiveSession).toHaveBeenCalledWith({ conductor_id: 'cond-2' });
       expect(screen.getByTestId('live-conductor-console')).toBeInTheDocument();
     });
+  });
+
+  vitestIt('auto-dismisses flash signal push toast quickly', async () => {
+    currentServerSession = {
+      ...createIdleLiveSession(),
+      isActive: true,
+      conductorId: 'cond-1',
+      conductorName: 'Maestro Demo',
+      activeSongId: 'song-1',
+      activeKey: 'Sol',
+    };
+
+    renderLive('musician', 'mus-2', GUITAR);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Canto Uno' })).toBeInTheDocument();
+    });
+
+    vi.useFakeTimers();
+    try {
+      act(() => {
+        capturedChannelCallbacks.onFlashSignal?.({
+          id: 'sig-auto-dismiss',
+          message: 'Finale a cappella',
+          issuedAt: new Date().toISOString(),
+          issuedByName: 'Maestro Demo',
+        });
+      });
+
+      expect(screen.getByTestId('live-flash-toast')).toHaveTextContent('Finale a cappella');
+
+      act(() => {
+        vi.advanceTimersByTime(4600);
+      });
+
+      expect(screen.queryByTestId('live-flash-toast')).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

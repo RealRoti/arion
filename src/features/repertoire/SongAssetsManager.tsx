@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react';
-import { FileText, Trash2, Upload } from 'lucide-react';
+import { FileText, Maximize2, Trash2, Upload } from 'lucide-react';
 import type { SongAsset } from '@/domain/models/songs';
 import { useAuth } from '@/features/auth/useAuth';
+import { PdfCanvasViewer } from '@/features/reader/PdfCanvasViewer';
 import { it } from '@/i18n/it';
 import { addSongPdfAsset, deleteSongAsset } from '@/services/songsService';
 import { StorageServiceError } from '@/services/storageService';
@@ -28,6 +29,7 @@ export function SongAssetsManager({ songId, assets, onAssetsChange }: SongAssets
   const [selectedInstrumentIds, setSelectedInstrumentIds] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [previewAssetId, setPreviewAssetId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -79,6 +81,9 @@ export function SongAssetsManager({ songId, assets, onAssetsChange }: SongAssets
     try {
       await deleteSongAsset(asset);
       onAssetsChange(assets.filter((item) => item.id !== asset.id));
+      if (previewAssetId === asset.id) {
+        setPreviewAssetId(null);
+      }
       setStatusMessage(it.songEditor.assetDeletedMessage);
     } catch {
       setErrorMessage(it.songEditor.errors.generic);
@@ -150,23 +155,54 @@ export function SongAssetsManager({ songId, assets, onAssetsChange }: SongAssets
                   </div>
                 </div>
 
-                {canDelete ? (
-                  <button
-                    type="button"
-                    disabled={busyId === asset.id}
-                    aria-label={`${it.songEditor.deleteAssetButton} ${asset.title}`}
-                    onClick={() => void handleDeleteAsset(asset)}
-                    className="touch-target inline-flex items-center gap-1.5 rounded-md border border-[var(--arion-danger)]/40 bg-[var(--arion-danger)]/10 px-3 py-1.5 text-xs font-bold text-[var(--arion-danger)] hover:bg-[var(--arion-danger)]/15 disabled:opacity-50"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                    <span>{it.songEditor.deleteAssetButton}</span>
-                  </button>
-                ) : null}
+                <div className="flex flex-wrap items-center gap-2">
+                  {asset.assetType === 'pdf' ? (
+                    <button
+                      type="button"
+                      aria-label={`${it.reader.pdfFullscreen} ${asset.title}`}
+                      onClick={() => setPreviewAssetId(asset.id)}
+                      className="touch-target inline-flex items-center gap-1.5 rounded-md border border-[var(--arion-border)] bg-[var(--arion-surface)] px-3 py-1.5 text-xs font-bold text-[var(--arion-text)] hover:border-[var(--arion-accent)]"
+                    >
+                      <Maximize2
+                        className="h-3.5 w-3.5 text-[var(--arion-accent)]"
+                        aria-hidden="true"
+                      />
+                      <span>{it.reader.pdfFullscreen}</span>
+                    </button>
+                  ) : null}
+
+                  {canDelete ? (
+                    <button
+                      type="button"
+                      disabled={busyId === asset.id}
+                      aria-label={`${it.songEditor.deleteAssetButton} ${asset.title}`}
+                      onClick={() => void handleDeleteAsset(asset)}
+                      className="touch-target inline-flex items-center gap-1.5 rounded-md border border-[var(--arion-danger)]/40 bg-[var(--arion-danger)]/10 px-3 py-1.5 text-xs font-bold text-[var(--arion-danger)] hover:bg-[var(--arion-danger)]/15 disabled:opacity-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                      <span>{it.songEditor.deleteAssetButton}</span>
+                    </button>
+                  ) : null}
+                </div>
               </div>
             );
           })}
         </div>
       )}
+
+      {previewAssetId ? (
+        <PdfCanvasViewer
+          assets={assets}
+          selectedAssetId={previewAssetId}
+          onSelectAsset={setPreviewAssetId}
+          defaultFullscreen
+          onFullscreenChange={(open) => {
+            if (!open) {
+              setPreviewAssetId(null);
+            }
+          }}
+        />
+      ) : null}
 
       {canUpload ? (
         <form

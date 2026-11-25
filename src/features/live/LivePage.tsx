@@ -79,6 +79,7 @@ import {
 } from '@/services/songsService';
 
 const CAPO_FRET_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as const;
+const FLASH_SIGNAL_TOAST_DURATION_MS = 4500;
 
 export function LivePage() {
   const [searchParams] = useSearchParams();
@@ -147,7 +148,7 @@ export function LivePage() {
     if (!visibleSignal || typeof window === 'undefined') return;
     const timeoutId = window.setTimeout(() => {
       setVisibleSignal(null);
-    }, 8000);
+    }, FLASH_SIGNAL_TOAST_DURATION_MS);
     return () => {
       window.clearTimeout(timeoutId);
     };

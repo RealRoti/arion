@@ -281,6 +281,10 @@ export const it = {
     pdfZoomFit: 'Adatta',
     pdfLoading: 'Caricamento partitura PDF...',
     pdfError: 'Impossibile aprire la partitura PDF.',
+    pdfFullscreen: 'Schermo intero',
+    pdfExitFullscreen: 'Esci da schermo intero',
+    pdfExitFullscreenShort: 'Chiudi',
+    pdfFullscreenDialogLabel: 'Partitura PDF a schermo intero',
     wakeLockActive: 'Schermo attivo',
     emptyChordPro: 'Nessun testo con accordi inserito per questo brano.',
     keyPrefix: 'Tonalità:',
@@ -739,6 +743,14 @@ export const it = {
     changelogTitle: 'Changelog',
     changelogSubtitle: 'Cronologia delle versioni e milestone rilasciate',
     changelogReleases: [
+      {
+        version: '0.1.10',
+        title: 'Versione 0.1.10 - Segnale lampo flottante e PDF a schermo intero',
+        items: [
+          'Segnale lampo Live in notifica flottante compatta in cima allo schermo corrente, sempre visibile anche scorrendo il brano o con partitura PDF a schermo intero, con chiusura automatica rapida.',
+          'Modalità schermo intero per le partiture PDF disponibile in ogni schermata (Repertorio, Scalette, Live e gestione allegati del brano), con adattamento alla pagina, zoom, Night Score e chiusura con Esc.',
+        ],
+      },
       {
         version: '0.1.9',
         title: 'Versione 0.1.9 - Modalità Live v1 Realtime, Presenza e Segnali lampo',
